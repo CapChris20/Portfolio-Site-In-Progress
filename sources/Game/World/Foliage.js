@@ -195,9 +195,9 @@ export class Foliage
     {
         this.mesh = new THREE.InstancedMesh(this.geometry, this.material.instance, this.transformMatrices.length)
         this.mesh.receiveShadow = true
-        this.mesh.castShadow = true
+        this.mesh.castShadow = this.game.quality.level === 0
         this.mesh.count = this.transformMatrices.length
-        this.mesh.frustumCulled = false
+        this.mesh.frustumCulled = true
         this.game.scene.add(this.mesh)
 
         this.instanceMatrix = new THREE.InstancedBufferAttribute(new Float32Array(this.mesh.count * 16), 16)

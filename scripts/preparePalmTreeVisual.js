@@ -1,51 +1,206 @@
 import { NodeIO } from '@gltf-transform/core'
-import { center, clearNodeTransform, flatten, prune } from '@gltf-transform/functions'
+import { center, clearNodeTransform, flatten, normals as generateNormals, prune, weld } from '@gltf-transform/functions'
+import sharp from 'sharp'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
-const sourcePath = process.argv[2] || join(process.env.HOME, 'Desktop/NEW GLB FILES/palm_trees.glb')
+const sourcePath = process.argv[2] || join(rootDir, 'static/Tree.glb')
 const outputPath = join(rootDir, 'static/palmTrees/palmTreesVisual.glb')
 
-// -90° around X — source trunk is authored on Z, game expects Y-up like birch trees
-const ROTATE_X_UP = [-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)]
-// ~9 unit birch height (source palm is ~3.9 units at the old 100× root scale)
-const TARGET_SCALE = 2.3
+const TARGET_HEIGHT = 9
+const TRIANGLE_STEP = 1800
+const TEXTURE_SIZE = 512
+const LEAVES_HEIGHT_RATIO = 0.72
 
 const io = new NodeIO()
 const document = await io.read(sourcePath)
 const root = document.getRoot()
+const sourceMesh = root.listMeshes()[0]
 
-const palmRoot = root.listNodes().find((node) => node.getName() === 'Bark_1')
+if(!sourceMesh)
+    throw new Error('Could not find mesh in source GLB')
 
-if(!palmRoot)
-    throw new Error('Could not find Bark_1 palm in source GLB')
+const sourcePrimitive = sourceMesh.listPrimitives()[0]
+const sourcePosition = sourcePrimitive.getAttribute('POSITION')
+const sourceNormal = sourcePrimitive.getAttribute('NORMAL')
+const sourceUv = sourcePrimitive.getAttribute('TEXCOORD_0')
+const sourceArray = sourcePosition.getArray()
+const sourceNormalArray = sourceNormal?.getArray()
+const sourceUvArray = sourceUv?.getArray()
+const sourceCount = sourcePosition.getCount()
+const sourceIndices = sourcePrimitive.getIndices().getArray()
+const sourceMaterial = sourcePrimitive.getMaterial()
 
-for(const node of root.listNodes())
+let minY = Infinity
+let maxY = -Infinity
+
+for(let i = 0; i < sourceCount; i++)
 {
-    if(node === palmRoot || node.listChildren().includes(palmRoot))
-        continue
-
-    if(node.getName().match(/^Bark_[2-4]/) || node.getName().match(/^Leaf_[2-4]/) || node.getName().match(/^(Bark|Leaf)_[2-4]_/))
-        node.dispose()
+    const y = sourceArray[i * 3 + 1]
+    minY = Math.min(minY, y)
+    maxY = Math.max(maxY, y)
 }
 
-palmRoot.setName('palmRoot')
+const height = maxY - minY
+const triangleCount = sourceIndices.length / 3
+const sampledIndices = []
+
+for(let triangle = 0; triangle < triangleCount; triangle += TRIANGLE_STEP)
+{
+    const offset = triangle * 3
+    sampledIndices.push(
+        sourceIndices[offset],
+        sourceIndices[offset + 1],
+        sourceIndices[offset + 2],
+    )
+}
+
+const usedVertices = new Set(sampledIndices)
+const vertexMap = new Map()
+const positions = []
+const normalData = []
+const uvData = []
+
+for(const vertexIndex of usedVertices)
+{
+    vertexMap.set(vertexIndex, positions.length / 3)
+    positions.push(
+        sourceArray[vertexIndex * 3],
+        sourceArray[vertexIndex * 3 + 1],
+        sourceArray[vertexIndex * 3 + 2],
+    )
+
+    if(sourceNormalArray)
+    {
+        normalData.push(
+            sourceNormalArray[vertexIndex * 3],
+            sourceNormalArray[vertexIndex * 3 + 1],
+            sourceNormalArray[vertexIndex * 3 + 2],
+        )
+    }
+
+    if(sourceUvArray)
+    {
+        uvData.push(
+            sourceUvArray[vertexIndex * 2],
+            sourceUvArray[vertexIndex * 2 + 1],
+        )
+    }
+}
+
+const remappedIndices = sampledIndices.map((index) => vertexMap.get(index))
+
+let treeMaterial = sourceMaterial
+
+if(sourceMaterial?.getBaseColorTexture())
+{
+    const sourceTexture = sourceMaterial.getBaseColorTexture()
+    const sourceImage = sourceTexture.getImage()
+
+    if(sourceImage)
+    {
+        const resized = await sharp(Buffer.from(sourceImage))
+            .resize(TEXTURE_SIZE, TEXTURE_SIZE, { fit: 'inside' })
+            .jpeg({ quality: 82 })
+            .toBuffer()
+
+        const texture = document.createTexture('treeBaseColor')
+            .setImage(resized)
+            .setMimeType('image/jpeg')
+
+        treeMaterial = document.createMaterial('treeBodyMat')
+            .setBaseColorTexture(texture)
+            .setBaseColorFactor(sourceMaterial.getBaseColorFactor())
+            .setMetallicFactor(sourceMaterial.getMetallicFactor() ?? 0.5)
+            .setRoughnessFactor(sourceMaterial.getRoughnessFactor() ?? 0.35)
+    }
+}
+
+if(!treeMaterial)
+{
+    treeMaterial = document.createMaterial('treeBodyMat')
+        .setBaseColorFactor([0.45, 0.28, 0.12, 1])
+        .setMetallicFactor(0)
+        .setRoughnessFactor(1)
+}
+
+const treePrimitive = document.createPrimitive()
+treePrimitive.setAttribute(
+    'POSITION',
+    document.createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array(positions)),
+)
+
+if(normalData.length)
+{
+    treePrimitive.setAttribute(
+        'NORMAL',
+        document.createAccessor()
+            .setType('VEC3')
+            .setArray(new Float32Array(normalData)),
+    )
+}
+
+if(uvData.length)
+{
+    treePrimitive.setAttribute(
+        'TEXCOORD_0',
+        document.createAccessor()
+            .setType('VEC2')
+            .setArray(new Float32Array(uvData)),
+    )
+}
+
+treePrimitive.setIndices(
+    document.createAccessor()
+        .setType('SCALAR')
+        .setArray(new Uint32Array(remappedIndices)),
+)
+treePrimitive.setMaterial(treeMaterial)
+
+const treeMesh = document.createMesh('treeBody')
+treeMesh.addPrimitive(treePrimitive)
+
+for(const node of [...root.listNodes()])
+    node.dispose()
+
+for(const mesh of [...root.listMeshes()])
+{
+    if(mesh !== treeMesh)
+        mesh.dispose()
+}
+
+for(const texture of [...root.listTextures()])
+{
+    if(texture !== treeMaterial.getBaseColorTexture())
+        texture.dispose()
+}
+
+for(const material of [...root.listMaterials()])
+{
+    if(material !== treeMaterial)
+        material.dispose()
+}
 
 const scene = root.listScenes()[0]
-if(scene)
-{
-    scene.listChildren().forEach((child) => child.dispose())
-    scene.addChild(palmRoot)
-}
 
-palmRoot.setTranslation([0, 0, 0])
-palmRoot.setRotation(ROTATE_X_UP)
-palmRoot.setScale([TARGET_SCALE, TARGET_SCALE, TARGET_SCALE])
+if(scene)
+    scene.listChildren().forEach((child) => child.dispose())
+
+const treeBody = document.createNode('treeBody')
+treeBody.setMesh(treeMesh)
+scene.addChild(treeBody)
+
+const targetScale = TARGET_HEIGHT / height
+treeBody.setScale([targetScale, targetScale, targetScale])
 
 await document.transform(
+    weld(),
+    generateNormals({ overwrite: true }),
     flatten(),
     center({ pivot: 'below' }),
     prune(),
@@ -57,117 +212,33 @@ for(const node of root.listNodes())
         clearNodeTransform(node)
 }
 
-// Move baked leaf positions into node transforms (foliage system expects offsets on nodes)
-for(const node of root.listNodes())
+const bodyNode = root.listNodes().find((node) => node.getName() === 'treeBody')
+const bodyPrimitive = bodyNode?.getMesh()?.listPrimitives()[0]
+const bodyPosition = bodyPrimitive?.getAttribute('POSITION')
+const bodyArray = bodyPosition?.getArray()
+let bodyMinY = Infinity
+let bodyMaxY = -Infinity
+
+if(bodyArray)
 {
-    const name = node.getName()
-
-    if(!name.match(/^Leaf_1_Leaf_/))
-        continue
-
-    const mesh = node.getMesh()
-    const primitive = mesh.listPrimitives()[0]
-    const position = primitive.getAttribute('POSITION')
-    const array = position.getArray()
-
-    let cx = 0
-    let cy = 0
-    let cz = 0
-    const count = position.getCount()
-
-    for(let i = 0; i < count; i++)
+    for(let i = 0; i < bodyPosition.getCount(); i++)
     {
-        cx += array[i * 3]
-        cy += array[i * 3 + 1]
-        cz += array[i * 3 + 2]
+        const y = bodyArray[i * 3 + 1]
+        bodyMinY = Math.min(bodyMinY, y)
+        bodyMaxY = Math.max(bodyMaxY, y)
     }
-
-    cx /= count
-    cy /= count
-    cz /= count
-
-    for(let i = 0; i < count; i++)
-    {
-        array[i * 3] -= cx
-        array[i * 3 + 1] -= cy
-        array[i * 3 + 2] -= cz
-    }
-
-    position.setArray(array)
-    node.setTranslation([cx, cy, cz])
 }
 
-palmRoot.setTranslation([0, 0, 0])
-palmRoot.setRotation([0, 0, 0, 1])
-palmRoot.setScale([1, 1, 1])
-
-await document.transform(center({ pivot: 'below' }))
-
-for(const node of root.listNodes())
-{
-    const name = node.getName()
-
-    if(name.match(/^Bark_1_Bark_1_0$/))
-        node.setName('treeBody')
-    else if(name.match(/^Leaf_1_Leaf_1_0$/))
-        node.setName('treeLeaves')
-    else if(name.match(/^Leaf_1_Leaf_2_0$/))
-        node.setName('treeLeaves.001')
-    else if(name.match(/^Leaf_1_Leaf_3_0$/))
-        node.setName('treeLeaves.002')
-}
-
-// One foliage anchor per tree — the game renders leaves via impostors, not these meshes
-const leafNodes = root.listNodes().filter((node) => node.getName().match(/^treeLeaves/))
-let canopyAnchor = null
-
-if(leafNodes.length)
-{
-    let anchorX = 0
-    let anchorY = 0
-    let anchorZ = 0
-
-    for(const node of leafNodes)
-    {
-        const translation = node.getTranslation()
-        anchorX += translation[0]
-        anchorY += translation[1]
-        anchorZ += translation[2]
-    }
-
-    canopyAnchor = [
-        anchorX / leafNodes.length,
-        anchorY / leafNodes.length,
-        anchorZ / leafNodes.length,
-    ]
-
-    for(const node of leafNodes)
-        node.dispose()
-}
-
-// Drop 2048px textures — trunk uses a flat color, leaves are foliage impostors
-for(const material of root.listMaterials())
-{
-    material.setBaseColorTexture(null)
-    material.setMetallicRoughnessTexture(null)
-    material.setNormalTexture(null)
-    material.setOcclusionTexture(null)
-    material.setEmissiveTexture(null)
-    material.setBaseColorFactor([0.45, 0.28, 0.12, 1])
-    material.setMetallicFactor(0)
-    material.setRoughnessFactor(1)
-}
-
-await document.transform(prune())
-
-if(canopyAnchor)
-{
-    const anchor = document.createNode('treeLeaves')
-    anchor.setTranslation(canopyAnchor)
-    scene.addChild(anchor)
-}
+const treeLeaves = document.createNode('treeLeaves')
+treeLeaves.setTranslation([0, bodyMaxY * LEAVES_HEIGHT_RATIO, 0])
+root.listScenes()[0].addChild(treeLeaves)
 
 await mkdir(dirname(outputPath), { recursive: true })
 await io.write(outputPath, document)
 
-console.log(`Palm tree visual written to ${outputPath}`)
+console.log(`Tree visual written to ${outputPath}`)
+console.log(`  vertices: ${bodyPosition?.getCount() ?? 'unknown'}`)
+console.log(`  attributes: ${(bodyPrimitive?.listSemantics() ?? []).join(', ')}`)
+console.log(`  height: ${bodyMinY.toFixed(2)} → ${bodyMaxY.toFixed(2)}`)
+console.log(`  leaves anchor y: ${(bodyMaxY * LEAVES_HEIGHT_RATIO).toFixed(2)}`)
+console.log(`  material: ${treeMaterial.getName()}`)

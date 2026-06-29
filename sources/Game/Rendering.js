@@ -41,7 +41,7 @@ export class Rendering
             canvas: this.game.canvasElement,
             powerPreference: 'high-performance',
             forceWebGL: false,
-            antialias: this.game.viewport.pixelRatio < 2
+            antialias: this.game.quality.level === 0
         })
         this.renderer.setSize(this.game.viewport.width, this.game.viewport.height)
         this.renderer.setPixelRatio(this.game.viewport.pixelRatio)
@@ -93,14 +93,16 @@ export class Rendering
             if(level === 0)
             {
                 this.postProcessing.outputNode = this.cheapDOFPass.add(this.bloomPass)
+                this.bloomPass._nMips = 3
+                this.bloomPass.strength.value = 0.2
             }
             else if(level === 1)
             {
-                this.postProcessing.outputNode = scenePassColor.add(this.bloomPass)
+                this.postProcessing.outputNode = scenePassColor
+                this.bloomPass._nMips = 0
+                this.bloomPass.strength.value = 0
             }
 
-            this.bloomPass._nMips = level === 0 ? 5 : 2
-            this.bloomPass.strength.value = level === 0 ? 0.25 : 0.15
             this.renderer.shadowMap.enabled = level === 0
 
             if(this.game.lighting?.light)

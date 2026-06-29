@@ -3,6 +3,7 @@ import { color, uniform, vec2 } from 'three/tsl'
 import { Game } from './Game.js'
 import gsap from 'gsap'
 import { RecruiterGuide } from './RecruiterGuide.js'
+import { HeroMotorcycle } from './HeroMotorcycle.js'
 
 export class Reveal
 {
@@ -45,7 +46,14 @@ export class Reveal
         this.game.ticker.events.on('tick', this.update, 10)
 
         this.heroLoader = document.querySelector('.js-hero-loader')
+        this.heroProgress = document.querySelector('.js-hero-progress-bar')
+        this.heroProgressTrack = document.querySelector('.hero-progress')
         document.documentElement.classList.add('has-hero')
+
+        const heroModelCanvas = document.querySelector('.js-hero-model')
+
+        if(heroModelCanvas)
+            this.heroMotorcycle = new HeroMotorcycle(heroModelCanvas)
     }
 
     updateStep(step)
@@ -159,7 +167,7 @@ export class Reveal
                 })
 
                 // Cherry trees
-                if(this.game.world.palmTrees)
+                if(this.game.world.palmTrees?.leaves)
                     this.game.world.palmTrees.leaves.seeThroughMultiplier = 0.5
             })
         }
@@ -200,7 +208,7 @@ export class Reveal
             )
 
             // Cherry trees
-            if(this.game.world.palmTrees)
+            if(this.game.world.palmTrees?.leaves)
             {
                 gsap.to(
                     this.game.world.palmTrees.leaves,
@@ -260,17 +268,28 @@ export class Reveal
     setHeroLoadProgress(progress)
     {
         const loader = this.heroLoader
+        const bar = this.heroProgress
+
+        if(bar)
+            bar.style.width = `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%`
 
         if(!loader)
             return
 
-        loader.textContent = progress >= 1 ? 'Ready' : `Loading world… ${Math.round(progress * 100)}%`
+        if(progress >= 1)
+            loader.textContent = 'Ready'
+        else if(progress <= 0)
+            loader.textContent = 'Booting world…'
+        else
+            loader.textContent = `Loading… ${Math.round(progress * 100)}%`
     }
 
     waitForHeroStart()
     {
         this.heroElement = document.querySelector('.js-hero')
         this.heroLoader = document.querySelector('.js-hero-loader')
+        this.heroProgress = document.querySelector('.js-hero-progress-bar')
+        this.heroProgressTrack = document.querySelector('.hero-progress')
         this.heroStart = document.querySelector('.js-hero-start')
 
         if(!this.heroElement)
@@ -281,6 +300,7 @@ export class Reveal
 
         document.documentElement.classList.add('has-hero')
         this.heroLoader?.classList.remove('is-hidden')
+        this.heroProgressTrack?.classList.remove('is-hidden')
         this.heroStart?.classList.remove('is-visible')
 
         let started = false
@@ -300,6 +320,9 @@ export class Reveal
             started = true
             cleanup()
 
+            this.heroMotorcycle?.destroy()
+            this.heroMotorcycle = null
+
             this.heroElement.classList.add('is-leaving')
             document.documentElement.classList.remove('has-hero')
 
@@ -307,7 +330,7 @@ export class Reveal
             {
                 this.heroElement.remove()
                 this.beginGameplay()
-            }, 550)
+            }, 720)
         }
 
         const onHeroStart = (action) =>
@@ -348,7 +371,8 @@ export class Reveal
         this.heroElement.addEventListener('pointerdown', onPointer)
         this.heroStart?.addEventListener('click', onPointer)
 
-        this.heroLoader?.classList.remove('is-hidden')
+        this.heroLoader?.classList.add('is-hidden')
+        this.heroProgressTrack?.classList.add('is-hidden')
         this.heroStart?.classList.add('is-visible')
     }
 
@@ -381,7 +405,7 @@ export class Reveal
         this.game.view.zoom.baseRatio = 0
         this.game.view.zoom.smoothedRatio = 0
 
-        if(this.game.world.palmTrees)
+        if(this.game.world.palmTrees?.leaves)
             this.game.world.palmTrees.leaves.seeThroughMultiplier = 1
 
         this.updateStep(2)

@@ -9,7 +9,7 @@ export class Grass
     {
         this.game = Game.getInstance()
 
-        this.subdivisions = 280
+        this.subdivisions = this.game.quality.level === 0 ? 140 : 80
         const halfExtent = this.game.view.optimalArea.radius
         this.size = halfExtent * 2
         this.count = this.subdivisions * this.subdivisions
@@ -133,6 +133,7 @@ export class Grass
             normalNode: vec3(0, 1, 0),
             hasWater: false,
             hasLightBounce: false,
+            hasFog: this.game.quality.level === 0,
             shadowNode: tipnessShadowMix
         })
 
@@ -199,7 +200,7 @@ export class Grass
     {
         this.mesh = new THREE.Mesh(this.geometry, this.material)
         this.mesh.frustumCulled = false
-        this.mesh.receiveShadow = true
+        this.mesh.receiveShadow = this.game.quality.level === 0
         // this.mesh.visible = false
         this.game.scene.add(this.mesh)
     }

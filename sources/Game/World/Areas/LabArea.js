@@ -8,7 +8,7 @@ import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGe
 import { remapClamp, safeMod, signedModDelta } from '../../utilities/maths.js'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
-import { OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
+import { DescriptionSign, OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
 import { Area } from './Area.js'
 
 export class LabArea extends Area
@@ -47,6 +47,7 @@ export class LabArea extends Area
         this.setAdjacents()
         this.setTitle()
         this.setUrl()
+        this.setDescriptionSign()
         this.setScroller()
         this.setPendulum()
         this.setBlackBoard()
@@ -266,9 +267,11 @@ export class LabArea extends Area
         this.texts.createMaterialOnMesh = (mesh, textTexture) =>
         {
             const material = new MeshDefaultMaterial({
+                colorNode: this.texts.baseColor,
                 hasWater: false,
+                hasReveal: false,
                 alphaNode: texture(textTexture).r,
-                transparent: true
+                transparent: true,
             })
             
             const baseOutput = material.outputNode
@@ -773,6 +776,27 @@ export class LabArea extends Area
         }
     }
 
+    setDescriptionSign()
+    {
+        const frame = this.images.mesh.parent
+
+        if(!frame)
+            return
+
+        this.descriptionSign = new DescriptionSign({
+            frame,
+            imagesMesh: this.images.mesh,
+            templateGroup: this.title.group,
+            texts: this.texts,
+            offset: OFFSET_FROM_IMAGES.labSign,
+            fontSizeMultiplier: 0.2,
+            textWidth: 4.4,
+            textHeight: 1.35,
+            maxChars: 30,
+            maxLines: 4,
+        })
+    }
+
     setScroller()
     {
         this.scroller = {}
@@ -1108,23 +1132,47 @@ export class LabArea extends Area
         this.blackBoard.labelsGamepadPlaystation.visible = false
         this.blackBoard.labelsGamepadXbox.visible = false
 
-        // Dynamic project description on the same board face
-        this.blackBoard.descriptionMesh = this.blackBoard.labelsMouseKeyboard.clone()
+        // Dynamic project description — fresh plane sized to the board face (cloned label UVs break dynamic text)
+        const labelRef = this.blackBoard.labelsMouseKeyboard
+        labelRef.geometry.computeBoundingBox()
+        const labelSize = new THREE.Vector3()
+        labelRef.geometry.boundingBox.getSize(labelSize)
+
+        const descriptionGeometry = new THREE.PlaneGeometry(labelSize.x, labelSize.y)
+        this.blackBoard.descriptionMesh = new THREE.Mesh(descriptionGeometry)
         this.blackBoard.descriptionMesh.name = 'blackboardDescription'
+        this.blackBoard.descriptionMesh.position.copy(labelRef.position)
+        this.blackBoard.descriptionMesh.quaternion.copy(labelRef.quaternion)
+        this.blackBoard.descriptionMesh.scale.copy(labelRef.scale)
+        this.blackBoard.descriptionMesh.position.z -= 0.006
         this.blackBoard.descriptionMesh.visible = false
+        this.blackBoard.descriptionMesh.renderOrder = 5
         this.blackBoard.group.add(this.blackBoard.descriptionMesh)
 
         this.blackBoard.descriptionCanvas = new TextCanvas(
             this.texts.fontFamily,
             this.texts.fontWeight,
-            this.texts.fontSizeMultiplier * 0.24,
-            3.4,
-            2.6,
-            this.texts.density,
+            this.texts.fontSizeMultiplier * 0.17,
+            2.4,
+            1.85,
+            280,
             'center',
-            0.3,
+            0.24,
+            0.14,
         )
+        this.blackBoard.descriptionCanvas.texture.minFilter = THREE.LinearFilter
+        this.blackBoard.descriptionCanvas.texture.magFilter = THREE.LinearFilter
         this.texts.createMaterialOnMesh(this.blackBoard.descriptionMesh, this.blackBoard.descriptionCanvas.texture)
+        this.blackBoard.descriptionMesh.material.depthWrite = false
+        this.blackBoard.descriptionMesh.material.polygonOffset = true
+        this.blackBoard.descriptionMesh.material.polygonOffsetFactor = -2
+        this.blackBoard.descriptionMesh.material.polygonOffsetUnits = -2
+
+        if(this.blackBoard.descriptionMesh.material?.isMeshLambertNodeMaterial)
+        {
+            this.blackBoard.descriptionMesh.material.hasReveal = false
+            this.blackBoard.descriptionMesh.material.side = THREE.DoubleSide
+        }
 
         this.blackBoard.updateContent = () =>
         {
@@ -1137,7 +1185,7 @@ export class LabArea extends Area
                 this.blackBoard.labelsMouseKeyboard.visible = false
                 this.blackBoard.descriptionMesh.visible = true
 
-                const lines = wrapDescription(this.navigation.current?.description ?? '', 38, 5)
+                const lines = wrapDescription(this.navigation.current?.description ?? '', 24, 5)
                 this.blackBoard.descriptionCanvas.updateText(lines.length ? lines : [''])
             }
             else
@@ -1389,6 +1437,9 @@ export class LabArea extends Area
         this.title.update(LabArea.DIRECTION_NEXT)
         this.blackBoard.updateContent()
 
+        if(this.descriptionSign)
+            this.descriptionSign.update(this.navigation.current?.description ?? '', LabArea.DIRECTION_NEXT)
+
         // Deactivate physical vehicle
         this.game.physicalVehicle.deactivate()
 
@@ -1443,6 +1494,9 @@ export class LabArea extends Area
         this.adjacents.nextIntersect.active = false
         this.adjacents.previousIntersect.active = false
         this.url.intersect.active = false
+
+        if(this.descriptionSign)
+            this.descriptionSign.setText(null)
 
         // Activate physical vehicle
         this.game.physicalVehicle.activate()
@@ -1509,6 +1563,14 @@ export class LabArea extends Area
         this.url.setLabel()
         this.blackBoard.updateContent()
         this.images.update()
+
+        if(this.descriptionSign)
+        {
+            if(this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING)
+                this.descriptionSign.update(this.navigation.current?.description ?? '', direction)
+            else
+                this.descriptionSign.setText(null)
+        }
 
         // Scroller
         this.scroller.update(this.navigation.index)

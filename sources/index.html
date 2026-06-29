@@ -25,7 +25,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&display=block" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&family=Press+Start+2P&display=block" rel="stylesheet">
     
     <link rel="stylesheet" href="./style/index.styl">
 
@@ -36,6 +36,7 @@
     <meta name="apple-mobile-web-app-title" content="Chris's" />
     <link rel="manifest" href="/favicons/site.webmanifest" />
 
+    <link rel="preload" href="/props/motorcycle.glb" as="fetch" crossorigin>
     <link rel="preload" href="/respawns/respawnsReferences-compressed.glb" as="fetch" crossorigin>
     <link rel="preload" href="/behindTheScene/stars.ktx" as="fetch" crossorigin>
     <link rel="preload" href="/intro/sound.ktx" as="fetch" crossorigin>
@@ -57,22 +58,47 @@
         <div class="font nunito" data-font="400 20px Nunito"> </div>
         <div class="font amatic-sc" data-font="700 20px 'Amatic SC'"> </div>
         <div class="font pally" data-font="500 20px Pally-Medium"> </div>
+        <div class="font press-start-2p" data-font="400 20px 'Press Start 2P'"> </div>
     </div>
     
     <div class="game">
 
         <div class="js-hero hero">
-            <div class="hero-backdrop"></div>
-            <div class="hero-content">
-                <p class="hero-eyebrow">Portfolio</p>
-                <h1 class="hero-title">Chris Shina</h1>
-                <p class="hero-subtitle">Drive around · explore projects · have fun</p>
-                <p class="js-hero-loader hero-loader">Loading world…</p>
-                <button class="js-hero-start hero-start" type="button" aria-label="Start portfolio">
-                    <span class="hero-start-label">Press to start</span>
-                    <span class="hero-start-hint">Enter · Space · Click</span>
-                </button>
+            <div class="hero-letterbox hero-letterbox--top"></div>
+            <div class="hero-letterbox hero-letterbox--bottom"></div>
+
+            <div class="hero-backdrop">
+                <canvas class="js-hero-model hero-model" aria-hidden="true"></canvas>
+                <div class="hero-stars" aria-hidden="true"></div>
+                <div class="hero-sun" aria-hidden="true"></div>
+                <div class="hero-grain" aria-hidden="true"></div>
+                <div class="hero-scanlines" aria-hidden="true"></div>
+                <div class="hero-vignette" aria-hidden="true"></div>
             </div>
+
+            <div class="hero-content">
+                <p class="hero-eyebrow">★ interactive folio ★</p>
+
+                <h1 class="hero-title" aria-label="Chris Shina">
+                    <span class="hero-title-line">Chris</span>
+                    <span class="hero-title-line">Shina</span>
+                </h1>
+
+                <p class="hero-subtitle">Drive the island · explore the work · find the secrets</p>
+
+                <div class="hero-status">
+                    <p class="js-hero-loader hero-loader">Booting world…</p>
+                    <div class="hero-progress" aria-hidden="true">
+                        <div class="js-hero-progress-bar hero-progress-bar"></div>
+                    </div>
+                    <button class="js-hero-start hero-start" type="button" aria-label="Start portfolio">
+                        <span class="hero-start-label">Press Start</span>
+                        <span class="hero-start-hint">Enter · Space · Click</span>
+                    </button>
+                </div>
+            </div>
+
+            <p class="hero-credits">© 2025 · chris shina</p>
         </div>
 
         <canvas class="js-canvas"></canvas>
@@ -951,6 +977,34 @@
                 <div class="js-map-container map-container">
                     <img class="js-texture texture" loading="lazy">
                     <div class="js-player player"></div>
+                </div>
+            </div>
+
+            <!-- Career detail -->
+            <div class="js-modal modal career" data-name="career">
+                <div class="container">
+                    <div class="content">
+                        <button class="js-close close">
+                            <img class="icon is-default" src="ui/close.svg" loading="lazy">
+                            <span class="icon is-xbox">A</span>
+                        </button>
+
+                        <div class="title">Experience</div>
+
+                        <div class="js-career-period career-period"></div>
+                        <h2 class="js-career-title career-title"></h2>
+                        <p class="js-career-summary career-summary"></p>
+
+                        <div class="js-career-details career-details"></div>
+
+                        <div class="career-section-title">Highlights</div>
+                        <ul class="js-career-highlights career-highlights"></ul>
+
+                        <div class="js-career-projects career-projects">
+                            <div class="career-section-title">Projects</div>
+                            <ul class="js-career-projects-list career-projects-list"></ul>
+                        </div>
+                    </div>
                 </div>
             </div>
 

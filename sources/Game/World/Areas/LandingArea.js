@@ -11,6 +11,7 @@ import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
 
 const LANDING_SPAWN = new THREE.Vector3(39.52898025512695, 0, 37.82522964477539)
+const _gameboyLookTarget = new THREE.Vector3()
 const CONTROLS_PROP_SKIP = /^gamepadPhysicalDynamic|^gizmoPhysicalDynamic|^phonePhysicalDynamic/
 const CONTROLS_GAMEBOY_LENGTH = 2.2
 const CONTROLS_GAMEBOY_BACK_OFFSET = 2.5
@@ -426,7 +427,6 @@ export class LandingArea extends Area
         const group = new THREE.Group()
         group.name = 'landingControlsGameboy'
         group.position.copy(point)
-        group.lookAt(LANDING_SPAWN.x, point.y, LANDING_SPAWN.z)
 
         this.game.materials.applyObjectMaterials(visual, { useCache: false })
         group.add(visual)
@@ -587,5 +587,12 @@ export class LandingArea extends Area
     update()
     {
         this.localTime.value += this.game.ticker.deltaScaled * 0.1
+
+        if(this.controlsGameboy)
+        {
+            _gameboyLookTarget.copy(this.game.view.defaultCamera.position)
+            _gameboyLookTarget.y = this.controlsGameboy.position.y
+            this.controlsGameboy.lookAt(_gameboyLookTarget)
+        }
     }
 }

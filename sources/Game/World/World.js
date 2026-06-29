@@ -29,6 +29,7 @@ import { Fences } from './Fences.js'
 import { Benches } from './Benches.js'
 import { Scenery } from './Scenery.js'
 import { WorldProps, filterReferencesNearEntranceStatue } from './WorldProps.js'
+import { InstancedGroup } from '../InstancedGroup.js'
 
 export class World
 {
@@ -74,15 +75,19 @@ export class World
             this.visualTornado = new VisualTornado()
             this.bushes = new Bushes()
             const palmVisual = this.game.resources.palmTreesVisualModel.scene
-            const palmColorA = '#2d6a31'
-            const palmColorB = '#6bbf59'
-            const palmReferences = filterReferencesNearEntranceStatue([
-                ...this.game.resources.birchTreesReferencesModel.scene.children,
-                ...this.game.resources.oakTreesReferencesModel.scene.children,
-                ...this.game.resources.cherryTreesReferencesModel.scene.children,
-            ])
+            const palmColorA = '#2a5c2e'
+            const palmColorB = '#5fa84f'
+            const palmReferences = filterReferencesNearEntranceStatue(
+                InstancedGroup.getReferencesFromChildren([
+                    ...this.game.resources.birchTreesReferencesModel.scene.children,
+                    ...this.game.resources.oakTreesReferencesModel.scene.children,
+                    ...this.game.resources.cherryTreesReferencesModel.scene.children,
+                ]),
+            )
 
-            this.palmTrees = new Trees('Palm Tree', palmVisual, palmReferences, palmColorA, palmColorB, 28)
+            const foliagePlaneCount = 28
+
+            this.palmTrees = new Trees('Tree', palmVisual, palmReferences, palmColorA, palmColorB, foliagePlaneCount)
             this.flowers = new Flowers()
             this.bricks = new Bricks()
             this.fences = new Fences()

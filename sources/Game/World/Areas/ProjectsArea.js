@@ -265,9 +265,11 @@ export class ProjectsArea extends Area
         this.texts.createMaterialOnMesh = (mesh, textTexture) =>
         {
             const material = new MeshDefaultMaterial({
+                colorNode: this.texts.baseColor,
                 hasWater: false,
+                hasReveal: false,
                 alphaNode: texture(textTexture).r,
-                transparent: true
+                transparent: true,
             })
             
             const baseOutput = material.outputNode
@@ -708,6 +710,12 @@ export class ProjectsArea extends Area
             item.visible = false
             item.group.visible = false
             item.panel = item.group.children.find(_child => _child.name.startsWith('panel'))
+            item.backdrop = item.group.children.find(_child =>
+                _child.name.startsWith('panel') ||
+                _child.name.startsWith('Cube') ||
+                _child.name.startsWith('cube') ||
+                _child.name.startsWith('refel'),
+            )
             const textMesh = item.group.children.find(_child => _child.name.startsWith('text'))
             item.textCanvas = new TextCanvas(
                 this.texts.fontFamily,
@@ -727,8 +735,21 @@ export class ProjectsArea extends Area
 
         this.attributes.update = () =>
         {
-            if(this.attributes.status === 'hiding')
-                return
+            if(this._attributesUpdateDelay)
+            {
+                this._attributesUpdateDelay.kill()
+                this._attributesUpdateDelay = null
+            }
+
+            for(const name of this.attributes.names)
+            {
+                const item = this.attributes.items[name]
+
+                if(item?.group)
+                    gsap.killTweensOf(item.group.scale)
+            }
+
+            gsap.killTweensOf(this.attributes.group.position)
 
             this.attributes.status = 'hiding'
             let i = 0
@@ -743,8 +764,9 @@ export class ProjectsArea extends Area
                 i++
             }
 
-            gsap.delayedCall(1, () =>
+            this._attributesUpdateDelay = gsap.delayedCall(1, () =>
             {
+                this._attributesUpdateDelay = null
                 this.attributes.status = 'visible'
 
                 let i = 0
@@ -768,16 +790,29 @@ export class ProjectsArea extends Area
                     if(attribute && (!Array.isArray(attribute) || attribute.length))
                     {
                         item.group.visible = true
+                        item.group.scale.set(0.01, 0.01, 0.01)
                         gsap.to(item.group.scale, { x: 1, y: 1, z: 1, duration: 1, delay: 0.2 * i, ease: 'back.out(2)', overwrite: true })
 
                         item.textCanvas.updateText(attribute)
 
-                        if(name === 'role' && item.panel)
+                        if(name === 'role')
                         {
                             const lines = Array.isArray(attribute) ? attribute : [attribute]
                             const ratio = item.textCanvas.getMeasure().width / this.texts.density
-                            item.panel.scale.x = Math.max(ratio + 0.45, 1.6)
-                            item.panel.scale.y = 0.35 + lines.length * 0.22
+                            const backdropWidth = Math.max(ratio + 0.45, 1.6)
+                            const backdropHeight = 0.35 + lines.length * 0.22
+
+                            if(item.panel)
+                            {
+                                item.panel.scale.x = backdropWidth
+                                item.panel.scale.y = backdropHeight
+                            }
+
+                            if(item.backdrop && item.backdrop !== item.panel)
+                            {
+                                item.backdrop.scale.x = backdropWidth
+                                item.backdrop.scale.y = backdropHeight
+                            }
                         }
 
                         item.group.position.y = - i * 0.75

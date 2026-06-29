@@ -28,23 +28,55 @@ export function wrapDescription(text, maxChars = 34, maxLines = 3)
 
     for(const word of words)
     {
-        const next = line ? `${line} ${word}` : word
+        let remaining = word
 
-        if(next.length > maxChars && line)
+        while(remaining.length > 0)
         {
-            lines.push(line)
-            line = word
+            const spaceLeft = maxChars - line.length - (line ? 1 : 0)
+
+            if(spaceLeft <= 0 && line)
+            {
+                lines.push(line)
+                line = ''
+                continue
+            }
+
+            if(remaining.length <= spaceLeft || spaceLeft <= 0)
+            {
+                line = line ? `${line} ${remaining}` : remaining
+                remaining = ''
+            }
+            else
+            {
+                if(line)
+                {
+                    lines.push(line)
+                    line = ''
+                }
+
+                lines.push(remaining.slice(0, maxChars))
+                remaining = remaining.slice(maxChars)
+            }
         }
-        else
-        {
-            line = next
-        }
+
+        if(lines.length >= maxLines)
+            break
     }
 
     if(line)
         lines.push(line)
 
     return lines.slice(0, maxLines)
+}
+
+function findBackdrop(inner)
+{
+    return inner.children.find((_child) =>
+        _child.name.startsWith('panel') ||
+        _child.name.startsWith('Cube') ||
+        _child.name.startsWith('cube') ||
+        _child.name.startsWith('refel'),
+    )
 }
 
 export class DescriptionSign
@@ -54,17 +86,19 @@ export class DescriptionSign
         imagesMesh,
         templateGroup,
         texts,
-        shadeMix,
         fontSizeMultiplier = 0.24,
         textWidth = 4.5,
         textHeight = 1.4,
         offset = OFFSET_FROM_IMAGES.labSign,
+        maxChars = 34,
+        maxLines = 3,
     })
     {
         this.texts = texts
-        this.shadeMix = shadeMix
+        this.maxChars = maxChars
+        this.maxLines = maxLines
         this.status = 'hidden'
-        this.nextDirection = 1
+        this.hasShown = false
 
         this.group = templateGroup.clone(true)
         this.group.name = 'descriptionSign'
@@ -81,13 +115,19 @@ export class DescriptionSign
         if(imagesMesh)
             this.group.position.copy(positionRelativeToImages(imagesMesh, offset))
 
-        this.group.rotation.copy(templateGroup.rotation)
+        this.group.rotation.set(0, 0, 0)
         this.group.scale.copy(templateGroup.scale)
 
         this.inner = this.group.children.find(_child => _child.name.startsWith('inner')) ?? this.group.children[0]
-        this.textMesh = this.inner.children.find(_child => _child.name.startsWith('text'))
-        this.panel = this.inner.children.find(_child => _child.name.startsWith('panel'))
-        this.backdrop = this.inner.children.find(_child => _child.name.startsWith('Cube') || _child.name.startsWith('cuboid'))
+        this.textMesh = this.inner?.children.find(_child => _child.name.startsWith('text'))
+        this.panel = this.inner?.children.find(_child => _child.name.startsWith('panel'))
+        this.backdrop = this.inner ? findBackdrop(this.inner) : null
+
+        if(!this.textMesh)
+        {
+            console.warn('DescriptionSign: could not find text mesh in template')
+            return
+        }
 
         this.textCanvas = new TextCanvas(
             texts.fontFamily,
@@ -100,22 +140,22 @@ export class DescriptionSign
             0.22,
         )
 
-        texts.createMaterialOnMesh(this.textMesh, this.textCanvas.texture)
-    }
+        this.textCanvas.texture.minFilter = THREE.LinearFilter
+        this.textCanvas.texture.magFilter = THREE.LinearFilter
 
-    setText(text)
-    {
-        if(!text)
+        texts.createMaterialOnMesh(this.textMesh, this.textCanvas.texture)
+
+        if(this.textMesh.material?.isMeshLambertNodeMaterial)
         {
-            this.group.visible = false
-            return
+            this.textMesh.material.side = THREE.DoubleSide
+            this.textMesh.material.depthWrite = false
         }
 
-        this.group.visible = true
+        this.textMesh.renderOrder = 2
+    }
 
-        const lines = wrapDescription(text)
-        this.textCanvas.updateText(lines)
-
+    resizeBackdrop(lines)
+    {
         const ratio = this.textCanvas.getMeasure().width / this.texts.density
         const backdropWidth = Math.max(ratio + 0.5, 2.2)
         const backdropHeight = 0.3 + lines.length * 0.2
@@ -133,21 +173,67 @@ export class DescriptionSign
         }
     }
 
-    update(text, direction = 1)
+    setText(text)
     {
-        this.nextDirection = direction
-
-        if(this.status === 'hiding')
+        if(!this.textMesh)
             return
 
-        this.status = 'hiding'
+        if(!text)
+        {
+            this.group.visible = false
+            this.status = 'hidden'
+            return
+        }
 
+        const lines = wrapDescription(text, this.maxChars, this.maxLines)
+
+        if(!lines.length)
+        {
+            this.group.visible = false
+            this.status = 'hidden'
+            return
+        }
+
+        this.group.visible = true
+        this.status = 'visible'
+        this.textCanvas.updateText(lines)
+        this.resizeBackdrop(lines)
+    }
+
+    update(text, direction = 1)
+    {
+        if(!this.textMesh)
+            return
+
+        if(this.flipTween)
+        {
+            this.flipTween.kill()
+            this.flipTween = null
+        }
+
+        gsap.killTweensOf(this.inner.rotation)
+
+        if(!text)
+        {
+            this.setText(null)
+            return
+        }
+
+        if(!this.hasShown)
+        {
+            this.hasShown = true
+            this.inner.rotation.x = 0
+            this.setText(text)
+            return
+        }
+
+        this.status = 'hiding'
         const rotationDirection = direction === 2 ? -1 : 1
 
         this.inner.rotation.x = 0
-        gsap.to(this.inner.rotation, { x: Math.PI * rotationDirection, duration: 0.8, ease: 'power2.in', overwrite: true, onComplete: () =>
+        this.flipTween = gsap.to(this.inner.rotation, { x: Math.PI * rotationDirection, duration: 0.8, ease: 'power2.in', overwrite: true, onComplete: () =>
         {
-            this.status = 'visible'
+            this.flipTween = null
             this.setText(text)
 
             gsap.to(this.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 0.8, ease: 'back.out(2)', overwrite: true })

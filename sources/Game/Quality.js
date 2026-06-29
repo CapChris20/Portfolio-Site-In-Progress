@@ -9,7 +9,6 @@ export class Quality
 
         this.events = new Events()
 
-        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
         const envQuality = import.meta.env.VITE_QUALITY
 
         if(envQuality === 'low')
@@ -17,7 +16,7 @@ export class Quality
         else if(envQuality === 'high')
             this.level = 0
         else
-            this.level = isMobile ? 1 : 0
+            this.level = 1
 
         this.applyPerformanceSettings()
 
@@ -57,7 +56,7 @@ export class Quality
 
         if(this.game.viewport)
         {
-            this.game.viewport.setPixelRatioMax(high ? 1.5 : 1.25)
+            this.game.viewport.setPixelRatioMax(high ? 1.25 : 0.9)
 
             if(this.game.rendering?.renderer)
                 this.game.rendering.resize()

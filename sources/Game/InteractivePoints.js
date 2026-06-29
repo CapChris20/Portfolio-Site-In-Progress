@@ -524,6 +524,15 @@ export class InteractivePoints
                 item.interactCallback()
         }
 
+        item.updatePosition = (position) =>
+        {
+            group.position.copy(position)
+            item.position.set(position.x, position.z)
+
+            if(intersect.shape instanceof THREE.Sphere)
+                intersect.shape.center.copy(position)
+        }
+
         // Show
         item.show = () =>
         {

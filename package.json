@@ -8,7 +8,8 @@
     "build": "vite build --mode production",
     "preview": "vite preview",
     "compress": "node scripts/compress.js static/",
-    "generate-skills": "node scripts/generateSkillImages.js"
+    "generate-career": "node scripts/generateCareerTextures.js",
+    "prepare-tree": "node scripts/preparePalmTreeVisual.js"
   },
   "author": "",
   "license": "ISC",

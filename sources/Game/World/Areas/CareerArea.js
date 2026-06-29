@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { Game } from '../../Game.js'
+import { InteractivePoints } from '../../InteractivePoints.js'
 import { color, float, Fn, luminance, max, mix, positionGeometry, step, texture, uniform, uv, vec4 } from 'three/tsl'
 import gsap from 'gsap'
 import { clamp } from 'three/src/math/MathUtils.js'
@@ -22,8 +23,11 @@ export class CareerArea extends Area
 
         this.setSounds()
         this.setLines()
+        this.setInteractivePoints()
         this.setYears()
         this.setAchievement()
+
+        this.interactivePosition = new THREE.Vector3()
     }
 
     setSounds()
@@ -34,7 +38,7 @@ export class CareerArea extends Area
             autoplay: false,
             loop: false,
             volume: 0.3,
-            antiSpam: 0.1,
+            antiSpam: 0.4,
             positions: new THREE.Vector3(),
             distanceFade: 14,
             onPlay: (item, line) =>
@@ -49,7 +53,7 @@ export class CareerArea extends Area
             loop: false,
             volume: 0.2,
             rate: 0.8,
-            antiSpam: 0.1,
+            antiSpam: 0.4,
             positions: new THREE.Vector3(),
             distanceFade: 14,
             onPlay: (item, line) =>
@@ -83,7 +87,8 @@ export class CareerArea extends Area
             line.size = parseFloat(line.group.userData.size)
             line.hasEnd = line.group.userData.hasEnd
             line.color = line.group.userData.color
-            line.texture = this.game.resources[`${line.group.userData.texture}Texture`]
+            line.textureKey = line.group.userData.texture
+            line.texture = this.game.resources[`${line.textureKey}Texture`]
 
             line.stone = line.group.children.find(child => child.name.startsWith('stone'))
             line.stone.position.y = 0
@@ -148,14 +153,99 @@ export class CareerArea extends Area
         }
     }
 
+    setInteractivePoints()
+    {
+        this.nearLine = null
+
+        this.careerInfoPoint = this.game.interactivePoints.create(
+            this.lines.items[0].origin.clone(),
+            'More info',
+            InteractivePoints.ALIGN_LEFT,
+            InteractivePoints.STATE_CONCEALED,
+            () =>
+            {
+                if(this.nearLine)
+                    this.game.careerModal.open(this.nearLine.textureKey)
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.addItems(['interact'])
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.removeItems(['interact'])
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.removeItems(['interact'])
+            }
+        )
+
+        this.careerInfoPoint.hide()
+    }
+
+    getActiveLine()
+    {
+        let activeLine = null
+        let bestScore = -Infinity
+
+        for(const line of this.lines.items)
+        {
+            const delta = line.origin.z - this.game.player.position.z
+
+            if(delta <= - this.lines.padding || delta >= line.size + this.lines.padding * 2)
+                continue
+
+            const score = - Math.abs(delta - line.size * 0.5)
+
+            if(score > bestScore)
+            {
+                bestScore = score
+                activeLine = line
+            }
+        }
+
+        return activeLine
+    }
+
+    updateInteractivePoint()
+    {
+        const activeLine = this.getActiveLine()
+        const stoneRaised = activeLine && activeLine.stone.position.y > 1.2
+        const nearestLine = stoneRaised ? activeLine : null
+
+        if(nearestLine !== this.nearLine)
+        {
+            this.nearLine = nearestLine
+
+            if(nearestLine)
+            {
+                nearestLine.stone.getWorldPosition(this.interactivePosition)
+                this.interactivePosition.y += 2.6
+                this.careerInfoPoint.updatePosition(this.interactivePosition)
+                this.careerInfoPoint.show()
+            }
+            else
+            {
+                this.careerInfoPoint.hide()
+            }
+        }
+        else if(nearestLine)
+        {
+            nearestLine.stone.getWorldPosition(this.interactivePosition)
+            this.interactivePosition.y += 2.6
+            this.careerInfoPoint.updatePosition(this.interactivePosition)
+        }
+    }
+
     setYears()
     {
         this.year = {}
         this.year.group = this.references.items.get('year')[0]
         this.year.originZ = this.year.group.position.z
-        this.year.size = 17
+        this.year.size = 5
         this.year.offsetTarget = 0
-        this.year.start = 2008
+        this.year.start = 2022
         this.year.current = this.year.start
 
         //    Digit indexes
@@ -263,17 +353,26 @@ export class CareerArea extends Area
         {
             this.game.achievements.setProgress('areas', 'career')
         })
+
+        this.events.on('boundingOut', () =>
+        {
+            this.nearLine = null
+            this.careerInfoPoint.hide()
+        })
     }
 
     update()
     {
+        const activeLine = this.getActiveLine()
+
         // Lines
         for(const line of this.lines.items)
         {
             const delta = line.origin.z - this.game.player.position.z
+            const shouldBeIn = line === activeLine
 
             // Is in
-            if(delta > - this.lines.padding && delta < line.size + this.lines.padding * 2)
+            if(shouldBeIn)
             {
                 if(!line.isIn)
                 {
@@ -350,6 +449,17 @@ export class CareerArea extends Area
             }
 
             line.stone.position.z += (line.offsetTarget - line.stone.position.z) * this.game.ticker.deltaScaled * 10
+        }
+
+        if(this.isIn)
+        {
+            this.interactiveTick = (this.interactiveTick ?? 0) + this.game.ticker.deltaScaled
+
+            if(this.interactiveTick > 0.1)
+            {
+                this.interactiveTick = 0
+                this.updateInteractivePoint()
+            }
         }
 
         // Year

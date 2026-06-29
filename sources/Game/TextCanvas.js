@@ -11,7 +11,8 @@ export class TextCanvas
         height = null,
         density = 1,
         horizontalAlign = 'center',
-        lineHeight = 1
+        lineHeight = 1,
+        padding = 0.12,
     )
     {
         this.lines = []
@@ -20,6 +21,7 @@ export class TextCanvas
         this.height = Math.ceil(height * density)
         this.horizontalAlign = horizontalAlign
         this.lineHeight = lineHeight * density
+        this.padding = padding * density
 
         this.setCanvas()
         this.setTexture()
@@ -89,19 +91,22 @@ export class TextCanvas
         this.context.textBaseline = 'middle'
         this.context.fillStyle = '#ffffff'
 
+        const pad = this.padding
+        const innerWidth = this.width - pad * 2
+        const innerHeight = this.height - pad * 2
+
         let i = 0
         for(const line of this.lines)
         {
-            // const y = this.height / (this.lines.length + 1) * (i + 1)
-            const y = this.height / 2 + (i - (this.lines.length - 1) / 2) * this.lineHeight
+            const y = pad + innerHeight / 2 + (i - (this.lines.length - 1) / 2) * this.lineHeight
 
             let x = null
             if(this.horizontalAlign === 'center')
-                x = this.width / 2
+                x = pad + innerWidth / 2
             else if(this.horizontalAlign === 'left')
-                x = 0
+                x = pad
             else if(this.horizontalAlign === 'right')
-                x = this.width
+                x = this.width - pad
 
             this.context.fillText(line, x, y)
 

@@ -1,0 +1,80 @@
+.career
+    .container
+        width 640px
+        max-width calc(100vw - 40px)
+        max-height calc(100vh - 80px)
+        overflow auto
+
+    .content
+        > .title
+            font-size 1.5rem
+            color #ff9ed4
+            margin-bottom 1.25rem
+
+    .career-period
+        display inline-block
+        font-size 0.85rem
+        font-weight 700
+        letter-spacing 0.06em
+        text-transform uppercase
+        color #b65fff
+        margin-bottom 0.35rem
+
+    .career-title
+        font-size 2rem
+        line-height 1.1
+        margin-bottom 0.75rem
+
+    .career-summary
+        font-size 1.05rem
+        line-height 1.5
+        color #ffceca
+        margin-bottom 1.5rem
+
+    .career-details
+        p
+            line-height 1.55
+            margin-bottom 0.85rem
+
+            &:last-child
+                margin-bottom 0
+
+    .career-section-title
+        font-size 0.8rem
+        font-weight 700
+        letter-spacing 0.08em
+        text-transform uppercase
+        color #ff9ed4
+        margin 1.5rem 0 0.6rem
+
+    .career-highlights
+        list-style none
+        display flex
+        flex-wrap wrap
+        gap 8px
+
+        li
+            padding 6px 12px
+            border 1px solid #5390ff
+            border-radius 999px
+            font-size 0.85rem
+            color #ffffff
+
+    .career-projects
+        display none
+
+        &.is-visible
+            display block
+
+        .career-projects-list
+            list-style none
+
+            li
+                margin-bottom 0.5rem
+
+            a
+                color #a2ffab
+                text-decoration underline
+
+                html:not(.is-mode-touch) &:hover
+                    color #ffffff

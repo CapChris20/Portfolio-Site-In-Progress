@@ -1,7 +1,8 @@
 import * as THREE from 'three/webgpu'
 import { Game } from '../Game.js'
 import { Foliage } from './Foliage.js'
-import { color, uniform } from 'three/tsl'
+import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
+import { color, texture, uniform, uv } from 'three/tsl'
 
 export class Trees
 {
@@ -45,32 +46,89 @@ export class Trees
         })
     }
 
+    createBodyMaterial(sourceMaterial)
+    {
+        if(sourceMaterial?.map)
+        {
+            sourceMaterial.map.colorSpace = THREE.SRGBColorSpace
+
+            const material = new MeshDefaultMaterial({
+                colorNode: texture(sourceMaterial.map, uv()).rgb,
+                hasReveal: false,
+                hasWater: false,
+                side: THREE.DoubleSide,
+            })
+            material.map = sourceMaterial.map
+            material.name = 'treeBodyInstanced'
+
+            return material
+        }
+
+        this.game.materials.applyObjectMaterials(this.modelParts.body, { useCache: false })
+
+        const material = this.modelParts.body.material
+
+        if(material?.isMeshLambertNodeMaterial)
+        {
+            material.hasReveal = false
+            material.hasWater = false
+            material.side = THREE.DoubleSide
+            material.name = 'treeBodyInstanced'
+        }
+
+        return material
+    }
+
     setBodies()
     {
-        this.game.materials.updateObject(this.modelParts.body)
-        this.bodies = new THREE.InstancedMesh(this.modelParts.body.geometry, this.modelParts.body.material, this.references.length)
+        if(!this.modelParts.body)
+        {
+            console.warn('Trees: could not find treeBody mesh in visual')
+            return
+        }
+
+        if(!this.references.length)
+        {
+            console.warn('Trees: no placement references')
+            return
+        }
+
+        const geometry = this.modelParts.body.geometry
+        const material = this.createBodyMaterial(this.modelParts.body.material)
+
+        this.bodies = new THREE.InstancedMesh(geometry, material, this.references.length)
+        this.bodies.name = 'treeBodies'
         this.bodies.instanceMatrix.setUsage(THREE.StaticDrawUsage)
         this.bodies.castShadow = true
         this.bodies.receiveShadow = true
+        this.bodies.frustumCulled = false
         
         let i = 0
         for(const treeReference of this.references)
         {
+            treeReference.updateMatrix()
             this.bodies.setMatrixAt(i, treeReference.matrix)
             i++
         }
 
+        this.bodies.instanceMatrix.needsUpdate = true
         this.game.scene.add(this.bodies)
     }
 
     setLeaves()
     {
+        if(!this.modelParts.leaves.length || !this.references.length)
+            return
+
         const references = []
         
         for(const treeReference of this.references)
         {
+            treeReference.updateMatrixWorld(true)
+
             for(const leaves of this.modelParts.leaves)
             {
+                leaves.updateMatrixWorld(true)
                 const finalMatrix = leaves.matrix.clone().premultiply(treeReference.matrixWorld)
                 const reference = new THREE.Object3D()
                 reference.applyMatrix4(finalMatrix)
@@ -97,13 +155,18 @@ export class Trees
 
     setPhysical()
     {
+        if(this.game.quality.level === 1)
+            return
+
         for(const treeReference of this.references)
         {
+            const position = treeReference.position.clone().add(new THREE.Vector3(0, 2.5, 0))
+
             this.game.objects.add(
                 null,
                 {
                     type: 'fixed',
-                    position: treeReference.position.add(new THREE.Vector3(0, 2.5, 0)),
+                    position,
                     rotation: treeReference.quaternion,
                     friction: 0.7,
                     sleeping: true,
