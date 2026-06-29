@@ -76,6 +76,10 @@ export class RayCursor
                 if(!intersect.active)
                     return false
 
+                // During intro, the click target stays at spawn while the camera is zoomed out
+                if(this.game.inputs.filters.has('intro'))
+                    return true
+
                 // Test too far
                 const distance = Math.hypot(
                     this.game.view.focusPoint.position.x - intersect.position.x,
@@ -91,9 +95,10 @@ export class RayCursor
 
             if(intersects.length)
             {
+                const bounding = this.game.domElement.getBoundingClientRect()
                 const ndcPointer = new THREE.Vector2(
-                    (this.game.inputs.pointer.current.x / this.game.viewport.width) * 2 - 1,
-                    - ((this.game.inputs.pointer.current.y / this.game.viewport.height) * 2 - 1),
+                    ((this.game.inputs.pointer.current.x - bounding.left) / bounding.width) * 2 - 1,
+                    - (((this.game.inputs.pointer.current.y - bounding.top) / bounding.height) * 2 - 1),
                 )
                 this.raycaster.setFromCamera(ndcPointer, this.game.view.camera)
 

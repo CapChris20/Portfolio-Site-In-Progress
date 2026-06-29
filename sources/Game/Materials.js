@@ -284,18 +284,30 @@ export class Materials
         return material
     }
 
+    isConvertibleMaterial(baseMaterial)
+    {
+        return !!(
+            baseMaterial.isMeshLambertNodeMaterial ||
+            baseMaterial.isMeshStandardMaterial ||
+            baseMaterial.isMeshPhysicalMaterial ||
+            baseMaterial.isMeshStandardNodeMaterial ||
+            baseMaterial.isMeshPhysicalNodeMaterial ||
+            baseMaterial.map
+        )
+    }
+
     createFromMaterial(baseMaterial)
     {
-        if(baseMaterial.isMeshLambertNodeMaterial || baseMaterial.isMeshStandardMaterial)
+        if(this.isConvertibleMaterial(baseMaterial))
         {
             // Shadow
             // material.shadowSide = THREE.BackSide
 
-            // Color
+            // Color — GLBs from Hitem3d etc. ship with PNG baseColor maps (not the world palette)
             let baseColor = null
-            
+
             if(baseMaterial.map)
-                baseColor = texture(baseMaterial.map).rgb
+                baseColor = texture(baseMaterial.map, uv()).rgb
             else
                 baseColor = color(baseMaterial.color)
             
@@ -355,13 +367,33 @@ export class Materials
 
     updateObject(mesh)
     {
+        this.applyObjectMaterials(mesh, { useCache: true })
+    }
+
+    applyObjectMaterials(mesh, { useCache = true } = {})
+    {
         mesh.traverse((child) =>
         {
-            if(child.isMesh)
+            if(!child.isMesh || !child.material)
+                return
+
+            const apply = (material) =>
             {
-                if(typeof child.material.userData.prevent === 'undefined' || !child.material.userData.prevent)
-                    child.material = this.getFromName(child.material.name, child.material)
+                if(material.userData.prevent)
+                    return material
+
+                if(useCache)
+                    return this.getFromName(material.name, material)
+
+                const converted = this.createFromMaterial(material)
+                converted.name = material.name
+                return converted
             }
+
+            if(Array.isArray(child.material))
+                child.material = child.material.map(apply)
+            else
+                child.material = apply(child.material)
         })
     }
 }

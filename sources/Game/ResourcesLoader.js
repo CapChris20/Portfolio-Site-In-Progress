@@ -1,8 +1,19 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js'
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import * as THREE from 'three/webgpu'
 import { Game } from './Game.js'
+
+let meshoptReadyPromise = null
+
+function ensureMeshoptReady()
+{
+    if(!meshoptReadyPromise)
+        meshoptReadyPromise = MeshoptDecoder.ready
+
+    return meshoptReadyPromise
+}
 
 export class ResourcesLoader
 {
@@ -45,6 +56,7 @@ export class ResourcesLoader
             loader = new GLTFLoader()
             loader.setDRACOLoader(dracoLoader)
             loader.setKTX2Loader(ktx2Loader)
+            loader.setMeshoptDecoder(MeshoptDecoder)
         }
 
         this.loaders.set(_type, loader)
@@ -54,7 +66,7 @@ export class ResourcesLoader
 
     load(_files, _progressCallback = null)
     {
-        return new Promise((resolve, reject) =>
+        return ensureMeshoptReady().then(() => new Promise((resolve, reject) =>
         {
             let toLoad = _files.length
             const loadedResources = {}
@@ -86,10 +98,10 @@ export class ResourcesLoader
             }
 
             // Error
-            const error = (_file) =>
+            const error = (_file, loadError) =>
             {
-                console.log(`Resources > Couldn't load file ${_file[1]}`)
-                reject(_file[1])
+                console.error(`Resources > Couldn't load file ${_file[1]}`, loadError)
+                reject(loadError ?? _file[1])
             }
 
             // Each file
@@ -115,10 +127,12 @@ export class ResourcesLoader
                             progress()
                         },
                         undefined,
-                        error
+                        (loadError) => {
+                            error(_file, loadError)
+                        }
                     )
                 }
             }
-        })
+        }))
     }
 }

@@ -2,14 +2,41 @@ import * as THREE from 'three/webgpu'
 import { Game } from '../../Game.js'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import socialData from '../../../data/social.js'
-import { InstancedGroup } from '../../InstancedGroup.js'
 import { Area } from './Area.js'
 import { View } from '../../View.js'
+import { createGroundedPropVisual } from '../PropVisual.js'
+
+// Visible center statue + nearby clutter in areas.glb
+const CENTER_STATUE_SKIP = /^Cube\.133$|^physicalFixed\.002$|^socialArrayReference$|^boyPhysicalDynamic$|^baguiraPhysicalDynamic$|^linkedInPhysicalDynamic$|^onlyfansPhysicalDynamic$/
+const CENTER_STATUE_RADIUS = 5
+const NEON_JESUS_HEIGHT = 10
+const NEON_JESUS_WIDTH_SCALE = 1.4
+
+function isUnderNamedParent(node, name)
+{
+    let current = node
+
+    while(current)
+    {
+        if(current.name === name)
+            return true
+
+        current = current.parent
+    }
+
+    return false
+}
 
 export class SocialArea extends Area
 {
     constructor(model)
     {
+        for(const child of [...model.children])
+        {
+            if(CENTER_STATUE_SKIP.test(child.name))
+                model.remove(child)
+        }
+
         super(model)
 
         this.center = this.references.items.get('center')[0].position
@@ -24,21 +51,64 @@ export class SocialArea extends Area
         }
 
         this.setLinks()
-        this.setFans()
-        this.setOnlyFans()
+        this.setCenterLinkedIn()
         this.setStatue()
         // this.setFWA()
         this.setAchievement()
     }
 
+    setObjects()
+    {
+        this.objects = {}
+        this.objects.items = []
+        this.objects.hideable = []
+
+        for(const child of [...this.model.children])
+        {
+            if(CENTER_STATUE_SKIP.test(child.name))
+                continue
+
+            if(typeof child.userData.preventAutoAdd === 'undefined' || child.userData.preventAutoAdd === false)
+            {
+                const object = this.game.objects.addFromModel(
+                    child,
+                    {},
+                    {
+                        position: child.position.add(this.model.position),
+                        rotation: child.quaternion,
+                        sleeping: true,
+                        mass: child.userData.mass,
+                    }
+                )
+
+                this.objects.items.push(object)
+
+                if(child.name === 'refStatuePhysicalDynamic')
+                    this.stripStatueVisualMeshes(object)
+
+                if(
+                    object.visual &&
+                    (!object.physical || object.physical?.type === 'fixed') &&
+                    (typeof child.userData.preventFrustum === 'undefined' || child.userData.preventFrustum === false)
+                )
+                {
+                    this.objects.hideable.push(object.visual.object3D)
+                }
+            }
+
+            this.references.parse(child)
+        }
+    }
+
     setLinks()
     {
         const radius = 6
+        const ringLinks = socialData.filter((link) => link.name !== 'LinkedIn')
         let i = 0
 
-        for(const link of socialData)
+        for(const link of ringLinks)
         {
-            const angle = i * Math.PI / (socialData.length - 1)
+            const angle = i * Math.PI / (ringLinks.length - 1)
             const position = this.center.clone()
             position.x += Math.cos(angle) * radius
             position.y = 1
@@ -74,111 +144,24 @@ export class SocialArea extends Area
         }
     }
 
-    setFans()
+    setCenterLinkedIn()
     {
-        const baseFan = this.references.items.get('fan')[0]
-        baseFan.castShadow = true
-        baseFan.receiveShadow = true
+        const linkedIn = socialData.find((link) => link.name === 'LinkedIn')
 
-        baseFan.position.set(0, 0, 0)
+        if(!linkedIn?.url)
+            return
 
-        // Update materials 
-        this.game.materials.updateObject(baseFan)
+        const position = this.center.clone()
+        position.y = 2.5
 
-        baseFan.removeFromParent()
-        
-        this.fans = {}
-        this.fans.spawnerPosition = this.references.items.get('onlyFans')[0].position
-        this.fans.count = 30
-        this.fans.visibleCount = 0
-        this.fans.currentIndex = 0
-        this.fans.mass = 0.02
-        this.fans.objects = []
-
-        const references = []
-
-        for(let i = 0; i < this.fans.count; i++)
-        {
-            // Reference
-            const reference = new THREE.Object3D()
-
-            reference.position.copy(this.fans.spawnerPosition)
-            reference.position.y += 99
-            reference.needsUpdate = true
-            references.push(reference)
-            
-            // Object
-            const object = this.game.objects.add(
-                {
-                    model: reference,
-                    updateMaterials: false,
-                    castShadow: false,
-                    receiveShadow: false,
-                    parent: null,
-                },
-                {
-                    type: 'dynamic',
-                    position: reference.position,
-                    rotation: reference.quaternion,
-                    friction: 0.7,
-                    mass: this.fans.mass,
-                    sleeping: true,
-                    enabled: false,
-                    colliders: [ { shape: 'cuboid', parameters: [ 0.45, 0.65, 0.45 ], category: 'object' } ],
-                    waterGravityMultiplier: - 1
-                },
-            )
-
-            this.fans.objects.push(object)
-        }
-
-        this.fans.instancedGroup = new InstancedGroup(references, baseFan)
-
-        this.fans.pop = () =>
-        {
-            const object = this.fans.objects[this.fans.currentIndex]
-
-            const spawnPosition = this.fans.spawnerPosition.clone()
-            spawnPosition.x += (Math.random() - 0.5) * 4
-            spawnPosition.y += 4 * Math.random()
-            spawnPosition.z += (Math.random() - 0.5) * 4
-            object.physical.body.setTranslation(spawnPosition)
-            object.physical.body.setEnabled(true)
-            object.physical.body.setLinvel({ x: 0, y: 0, z: 0 })
-            object.physical.body.setAngvel({ x: 0, y: 0, z: 0 })
-            object.physical.body.wakeUp()
-            // this.game.ticker.wait(1, () =>
-            // {
-            //     object.physical.body.applyImpulse({
-            //         x: (Math.random() - 0.5) * this.fans.mass * 2,
-            //         y: Math.random() * this.fans.mass * 3,
-            //         z: this.fans.mass * 7
-            //     }, true)
-            //     object.physical.body.applyTorqueImpulse({ x: 0, y: 0, z: 0 }, true)
-            // })
-
-            this.fans.currentIndex = (this.fans.currentIndex + 1) % this.fans.count
-
-            this.fans.visibleCount = Math.min(this.fans.visibleCount + 1, this.fans.count)
-
-            // Sound
-            this.game.audio.groups.get('click').play(true)
-
-            // Achievement
-            this.game.achievements.setProgress('fan', 1)
-        }
-    }
-
-    setOnlyFans()
-    {
-        const interactiveArea = this.game.interactivePoints.create(
-            this.references.items.get('onlyFans')[0].position,
-            'OnlyFans',
-            InteractivePoints.ALIGN_RIGHT,
+        this.game.interactivePoints.create(
+            position,
+            linkedIn.name,
+            InteractivePoints.ALIGN_LEFT,
             InteractivePoints.STATE_CONCEALED,
             () =>
             {
-                this.fans.pop()
+                window.open(linkedIn.url, '_blank')
             },
             () =>
             {
@@ -197,9 +180,178 @@ export class SocialArea extends Area
 
     setStatue()
     {
+        this.purgeCenterStatueMeshes()
+        this.addCenterStatue()
+
+        const statueRef = this.references.items.get('statuePhysicalDynamic')?.[0]
+            ?? this.references.items.get('statue')?.[0]
+        const statueObject = statueRef?.userData?.object
+
+        if(statueObject?.visual)
+        {
+            this.stripStatueVisualMeshes(statueObject)
+
+            const hideIndex = this.objects.hideable.indexOf(statueObject.visual.object3D)
+
+            if(hideIndex !== -1)
+                this.objects.hideable.splice(hideIndex, 1)
+        }
+
+        this.events.on('frustumIn', () =>
+        {
+            this.purgeCenterStatueMeshes()
+        })
+
+        if(!statueObject?.physical)
+            return
+
         this.statue = {}
-        this.statue.body = this.references.items.get('statue')[0].userData.object.physical.body
+        this.statue.body = statueObject.physical.body
         this.statue.down = false
+    }
+
+    stripStatueVisualMeshes(object)
+    {
+        const object3D = object?.visual?.object3D
+
+        if(!object3D)
+            return
+
+        const meshes = []
+
+        object3D.traverse((child) =>
+        {
+            if(child.isMesh)
+                meshes.push(child)
+        })
+
+        for(const mesh of meshes)
+            mesh.removeFromParent()
+    }
+
+    purgeCenterStatueMeshes()
+    {
+        const centerRef = this.references.items.get('center')?.[0]
+
+        if(!centerRef)
+            return
+
+        const center = new THREE.Vector3()
+        centerRef.getWorldPosition(center)
+
+        const keepPattern = /^socialCenterStatue$|^refStatue$|^gitHub$|^twitch$|^youtube$|^x$|^discord$|^mail$|^bluesky$|^sudo$/i
+
+        for(const object of [...this.objects.items])
+        {
+            const object3D = object.visual?.object3D
+
+            if(!object3D)
+                continue
+
+            const name = object3D.name ?? ''
+
+            if(keepPattern.test(name))
+                continue
+
+            if(CENTER_STATUE_SKIP.test(name) || /^\.002$|^hull$|^Cube\.133$/i.test(name))
+            {
+                this.removeObjectFromArea(object)
+                continue
+            }
+
+            const world = new THREE.Vector3()
+            object3D.getWorldPosition(world)
+
+            if(world.distanceTo(center) > CENTER_STATUE_RADIUS)
+                continue
+
+            this.removeObjectFromArea(object)
+        }
+
+        const toRemove = []
+
+        this.game.scene.traverse((node) =>
+        {
+            if(isUnderNamedParent(node, 'socialCenterStatue'))
+                return
+
+            if(!node.isMesh)
+                return
+
+            const world = new THREE.Vector3()
+            node.getWorldPosition(world)
+
+            if(world.distanceTo(center) > CENTER_STATUE_RADIUS)
+                return
+
+            toRemove.push(node)
+        })
+
+        for(const node of toRemove)
+            node.parent?.remove(node)
+    }
+
+    removeObjectFromArea(object)
+    {
+        const object3D = object.visual?.object3D
+
+        if(!object3D)
+            return
+
+        this.stripStatueVisualMeshes(object)
+
+        const hideIndex = this.objects.hideable.indexOf(object3D)
+
+        if(hideIndex !== -1)
+            this.objects.hideable.splice(hideIndex, 1)
+
+        this.game.objects.disable(object)
+    }
+
+    addCenterStatue()
+    {
+        const source = this.game.resources.neonJesus?.scene
+
+        if(!source)
+        {
+            console.warn('SocialArea: neonJesus resource missing')
+            return
+        }
+
+        if(this.centerStatue)
+            this.centerStatue.removeFromParent()
+
+        const centerRef = this.references.items.get('center')?.[0]
+
+        if(!centerRef)
+            return
+
+        const point = new THREE.Vector3()
+        centerRef.getWorldPosition(point)
+        point.y = 0
+
+        const visual = createGroundedPropVisual(source, NEON_JESUS_HEIGHT, {
+            materialPrefix: 'socialCenterNeonJesus',
+            targetHeight: NEON_JESUS_HEIGHT,
+            widthScale: NEON_JESUS_WIDTH_SCALE,
+        })
+
+        const fittedBox = new THREE.Box3().setFromObject(visual)
+        const fittedCenter = fittedBox.getCenter(new THREE.Vector3())
+
+        visual.position.x -= fittedCenter.x
+        visual.position.z -= fittedCenter.z
+        visual.position.y -= fittedBox.min.y
+
+        const group = new THREE.Group()
+        group.name = 'socialCenterStatue'
+        group.position.copy(point)
+
+        this.game.materials.applyObjectMaterials(visual, { useCache: false })
+        group.add(visual)
+        this.game.scene.add(group)
+
+        this.centerStatue = group
     }
 
     setFWA()
@@ -288,16 +440,6 @@ export class SocialArea extends Area
 
     update()
     {
-        if(this.fans.visibleCount)
-        {
-            let allFansSleeping = true
-            for(const fan of this.fans.objects)
-                allFansSleeping = allFansSleeping && fan.physical.body.isSleeping()
-
-            if(!allFansSleeping)
-                this.fans.instancedGroup.updateBoundings()
-        }
-    
         if(this.statue && !this.statue.down && !this.statue.body.isSleeping())
         {
             const statueUp = new THREE.Vector3(0, 1, 0)
@@ -307,12 +449,6 @@ export class SocialArea extends Area
                 this.statue.down = true
                 this.game.achievements.setProgress('statueDown', 1)
             }
-        }
-
-        for(const object of this.fans.objects)
-        {
-            if(!object.physical.body.isSleeping() && object.physical.body.isEnabled())
-                object.visual.object3D.needsUpdate = true
         }
     }
 }

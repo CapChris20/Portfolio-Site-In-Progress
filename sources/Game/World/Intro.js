@@ -45,6 +45,7 @@ export class Intro
         }
         
         this.label.scale.setScalar(0.01)
+        this.label.visible = false
         this.game.scene.add(this.label)
     }
 
@@ -81,6 +82,8 @@ export class Intro
         mesh.rotation.z = Math.PI * 0.5
         
         this.game.scene.add(mesh)
+
+        mesh.visible = false
 
         this.circle.mesh = mesh
 
@@ -295,9 +298,14 @@ export class Intro
                 },
                 onComplete: () =>
                 {
-                    this.text.mesh.removeFromParent()
-                    this.soundButton.mesh.removeFromParent()
-                    this.game.rayCursor.removeIntersect(this.soundButton.intersect)
+                    if(this.text?.mesh)
+                        this.text.mesh.removeFromParent()
+
+                    if(this.soundButton?.mesh)
+                        this.soundButton.mesh.removeFromParent()
+
+                    if(this.soundButton?.intersect)
+                        this.game.rayCursor.removeIntersect(this.soundButton.intersect)
                 }
             }
         )
@@ -317,27 +325,40 @@ export class Intro
     {
         this.label.removeFromParent()
 
-        // Geometries
-        this.circle.mesh.geometry.dispose()
-        this.soundButton.mesh.geometry.dispose()
-        this.text.mesh.geometry.dispose()
-
-        // Materials
-        this.circle.mesh.material.dispose()
-        this.soundButton.mesh.material.dispose()
-        this.text.mesh.material.dispose()
-
-        // Textures
-        this.game.resources.soundTexture.dispose()
-
-        this.text.textures.forEach((value, key) =>
+        if(this.circle?.mesh)
         {
-            value.dispose()
-        })
+            this.circle.mesh.removeFromParent()
+            this.circle.mesh.geometry.dispose()
+            this.circle.mesh.material.dispose()
+        }
+
+        if(this.soundButton?.mesh)
+        {
+            this.soundButton.mesh.geometry.dispose()
+            this.soundButton.mesh.material.dispose()
+        }
+
+        if(this.text?.mesh)
+        {
+            this.text.mesh.geometry.dispose()
+            this.text.mesh.material.dispose()
+        }
+
+        if(this.text?.textures)
+        {
+            this.text.textures.forEach((value) =>
+            {
+                value.dispose()
+            })
+        }
         
         // Events
         this.game.ticker.events.off('tick', this.update)
-        this.game.inputs.gamepad.events.off('typeChange', this.text.updateTexture)
-        this.game.inputs.events.off('modeChange', this.text.updateTexture)
+
+        if(this.text?.updateTexture)
+        {
+            this.game.inputs.gamepad.events.off('typeChange', this.text.updateTexture)
+            this.game.inputs.events.off('modeChange', this.text.updateTexture)
+        }
     }
 }

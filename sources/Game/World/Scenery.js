@@ -2,6 +2,7 @@ import { color, float, Fn, max, PI, positionWorld, texture, uniform, uv, vec3 } 
 import { Game } from '../Game.js'
 import { References } from '../References.js'
 import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
+import { preparePropMaterials } from './PropVisual.js'
 
 export class Scenery
 {
@@ -42,13 +43,51 @@ export class Scenery
         })
     }
     
+    getRoadSurfaceMaterial()
+    {
+        if(this._roadSurfaceMaterial)
+            return this._roadSurfaceMaterial
+
+        const source = this.game.resources.roadSurface?.scene
+        if(!source)
+            return null
+
+        const probe = source.clone(true)
+        preparePropMaterials(probe, 'worldRoadSurface')
+        this.game.materials.applyObjectMaterials(probe, { useCache: false })
+
+        let material = null
+        probe.traverse((child) =>
+        {
+            if(child.isMesh && child.material && !material)
+                material = child.material
+        })
+
+        if(!material)
+            return null
+
+        this._roadSurfaceMaterial = material
+        return material
+    }
+
     setRoad()
     {
         this.road = {}
 
         // Mesh and material
         const mesh = this.references.items.get('road')[0]
-        
+
+        const customMaterial = this.getRoadSurfaceMaterial()
+        if(customMaterial)
+        {
+            const material = customMaterial.clone()
+            material.hasLightBounce = false
+            material.hasWater = false
+            mesh.material = material
+            this.road.usesCustomSurface = true
+            return
+        }
+
         this.road.color = uniform(color('#383039'))
         this.road.glitterVariation = uniform(0)
         this.road.glitterScarcity = uniform(100)
@@ -114,6 +153,9 @@ export class Scenery
 
     update()
     {
+        if(!this.road?.glitterVariation)
+            return
+
         this.road.glitterVariation.value += this.game.ticker.deltaScaled * 0.004 + this.game.view.delta.length() * 0.004
     }
 }

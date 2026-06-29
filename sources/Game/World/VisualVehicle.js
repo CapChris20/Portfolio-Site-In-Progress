@@ -124,6 +124,8 @@ export class VisualVehicle
 
         // Wheel
         this.game.materials.updateObject(this.parts.wheelContainer)
+
+        this.localBounds = new THREE.Box3().setFromObject(this.parts.chassis)
     }
 
     setPaints()

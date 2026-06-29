@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bruno's</title>
+    <title>Chris's</title>
 
-    <meta name="description" content="Bruno Simon's creative portfolio">
+    <meta name="description" content="Chris Shina's creative portfolio">
 
-    <meta itemprop="name" content="Bruno Simon">
-    <meta itemprop="description" content="Bruno Simon's creative portfolio">
-    <meta itemprop="image" content="https://bruno-simon.com/social/share-image.png?cb=a">
+    <meta itemprop="name" content="Chris Shina">
+    <meta itemprop="description" content="Chris Shina's creative portfolio">
+    <meta itemprop="image" content="/social/share-image.png">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Bruno Simon">
-    <meta name="twitter:description" content="Bruno Simon's creative portfolio">
-    <meta name="twitter:image" content="https://bruno-simon.com/social/share-image.png?cb=a">
+    <meta name="twitter:title" content="Chris Shina">
+    <meta name="twitter:description" content="Chris Shina's creative portfolio">
+    <meta name="twitter:image" content="/social/share-image.png">
 
-    <meta property="og:site_name" content="Three.js Journey">
+    <meta property="og:site_name" content="Chris Shina">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://bruno-simon.com/">
-    <meta property="og:title" content="Bruno Simon">
-    <meta property="og:description" content="Bruno Simon's creative portfolio">
-    <meta property="og:image" content="https://bruno-simon.com/social/share-image.png?cb=a">
+    <meta property="og:url" content="/">
+    <meta property="og:title" content="Chris Shina">
+    <meta property="og:description" content="Chris Shina's creative portfolio">
+    <meta property="og:image" content="/social/share-image.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" loading="lazy" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Bruno's" />
+    <meta name="apple-mobile-web-app-title" content="Chris's" />
     <link rel="manifest" href="/favicons/site.webmanifest" />
 
     <link rel="preload" href="/respawns/respawnsReferences-compressed.glb" as="fetch" crossorigin>
@@ -61,6 +61,20 @@
     
     <div class="game">
 
+        <div class="js-hero hero">
+            <div class="hero-backdrop"></div>
+            <div class="hero-content">
+                <p class="hero-eyebrow">Portfolio</p>
+                <h1 class="hero-title">Chris Shina</h1>
+                <p class="hero-subtitle">Drive around · explore projects · have fun</p>
+                <p class="js-hero-loader hero-loader">Loading world…</p>
+                <button class="js-hero-start hero-start" type="button" aria-label="Start portfolio">
+                    <span class="hero-start-label">Press to start</span>
+                    <span class="hero-start-hint">Enter · Space · Click</span>
+                </button>
+            </div>
+        </div>
+
         <canvas class="js-canvas"></canvas>
 
         <!-- Touch buttons -->
@@ -69,16 +83,17 @@
             <div class="list">
                 <button data-name="interact" class="js-button interact">Interact</button>
                 <button data-name="unstuck" class="js-button unstuck">Unstuck</button>
-                <button data-name="previous" class="js-button previous"></button>
-                <button data-name="next" class="js-button next"></button>
-                <button data-name="open" class="js-button open"></button>
-                <button data-name="close" class="js-button close"></button>
+                <button data-name="previous" class="js-button previous">Prev</button>
+                <button data-name="next" class="js-button next">Next</button>
+                <button data-name="open" class="js-button open">Visit</button>
+                <button data-name="close" class="js-button close">Exit</button>
             </div>
         </div>
 
         <!-- Menu trigger -->
-        <button class="js-menu-trigger menu-trigger">
+        <button class="js-menu-trigger menu-trigger" aria-label="Open menu — projects, resume, controls">
             <div class="button-inner">
+                <span class="button-label">Menu</span>
                 <div class="icon-container">
                     <div class="icon">
                         <div class="line"></div>
@@ -90,8 +105,9 @@
         </button>
 
         <!-- Map trigger -->
-        <button class="js-map-trigger map-trigger">
+        <button class="js-map-trigger map-trigger" aria-label="Open map — jump to portfolio areas">
             <div class="button-inner">
+                <span class="button-label">Map</span>
                 <div class="icon-container">
                     <img class="map-icon" src="ui/map.svg" loading="lazy">
                 </div>
@@ -114,7 +130,7 @@
 
                 <div class="js-navigation navigation">
 
-                    <!-- Intro -->
+                    <!-- Home -->
                     <button class="js-navigation-item item" data-name="home">
                         <div class="button-inner">
                             <div class="icon-container">
@@ -123,7 +139,16 @@
                         </div>
                     </button>
 
-                    <!-- Intro -->
+                    <!-- Portfolio -->
+                    <button class="js-navigation-item item" data-name="portfolio">
+                        <div class="button-inner">
+                            <div class="icon-container">
+                                <img src="ui/map.svg" loading="lazy">
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Options -->
                     <button class="js-navigation-item item" data-name="options">
                         <div class="button-inner">
                             <div class="icon-container">
@@ -182,8 +207,13 @@
 
                     <div class="previews js-previews">
 
-                        <!-- Intro -->
+                        <!-- Home -->
                         <div class="js-preview preview home-preview">
+                            <img class="background" src="ui/previews/home.webp" loading="lazy" draggable="false">
+                        </div>
+
+                        <!-- Portfolio -->
+                        <div class="js-preview preview portfolio-preview">
                             <img class="background" src="ui/previews/home.webp" loading="lazy" draggable="false">
                         </div>
 
@@ -221,14 +251,61 @@
                     </div>
 
                     <div class="contents js-contents">
-                        <!-- Intro -->
+                        <!-- Home -->
                         <div class="js-content content home-content">
                             <div class="content-inner">
-                                <div class="title">Bruno's Home</div>
-                                <p class="text">Welcome!</p>
-                                <p class="text">My name is <strong>Bruno Simon</strong>, and I'm a <strong>creative developer</strong> (mostly for the web).</p>
-                                <p class="text">This is my portfolio. Please drive around to learn more about me and discover the many secrets of this world.</p>
-                                <p class="text">And don't break anything!</p>
+                                <div class="title">Chris Shina</div>
+                                <p class="text">Welcome — this is my interactive portfolio. You drive a car around an island to explore my work.</p>
+                                <p class="text"><strong>Recruiters / first-time visitors:</strong></p>
+                                <ul class="text">
+                                    <li>Press <strong>M</strong> or the map button (top-right) to teleport anywhere</li>
+                                    <li>Open the menu → <strong>Portfolio</strong> for one-click jumps to skills, projects, and career</li>
+                                    <li>Look for floating diamond markers — drive up and press <strong>Enter</strong> to interact</li>
+                                </ul>
+                                <p class="text">Drive to the glowing circle and click Start to begin. Your ride is Lightning McQueen.</p>
+                            </div>
+                        </div>
+
+                        <!-- Portfolio -->
+                        <div class="js-content content portfolio-content">
+                            <div class="content-inner">
+                                <div class="title">Portfolio</div>
+                                <p class="text">Skip the driving — jump straight to the good stuff:</p>
+                                <table class="options">
+                                    <tbody>
+                                        <tr>
+                                            <td>Skills & stack</td>
+                                            <td>
+                                                <button class="button is-small js-main-focus" data-respawn="projects">Go to Skills</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Projects</td>
+                                            <td>
+                                                <button class="button is-small" data-respawn="lab">Go to Projects</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Career timeline</td>
+                                            <td>
+                                                <button class="button is-small" data-respawn="career">Go to Career</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Spawn / name sign</td>
+                                            <td>
+                                                <button class="button is-small" data-respawn="landing">Go to Landing</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Full island map</td>
+                                            <td>
+                                                <button class="button is-small js-portfolio-map">Open Map (M)</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <p class="text text-small text-faded">At each location, use <strong>Enter</strong> / <strong>E</strong> on the diamond marker to open the content.</p>
                             </div>
                         </div>
 
@@ -725,7 +802,7 @@
                                 </ul>
 
                                 <p class="text text-faded text-align-right">
-                                    — Bruno
+                                    — Chris
                                 </p>
                             </div>
                         </div>

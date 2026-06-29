@@ -41,17 +41,17 @@ export class Map
     {
         this.locations = {}
         this.locations.items = [
+            { name: 'Start here', respawnName: 'landing', offset: { x: 0.02, y: 0 } },
+            { name: 'Skills', respawnName: 'projects', offset: { x: 0, y: -0.02 } },
+            { name: 'Projects', respawnName: 'lab', offset: { x: -0.03, y: 0 } },
+            { name: 'Career', respawnName: 'career', offset: { x: 0, y: -0.06 } },
+            { name: 'Social', respawnName: 'social', offset: { x: -0.01, y: -0.04 } },
+            { name: 'Behind<br /> the scene', respawnName: 'behindTheScene', offset: { x: 0.01, y: 0 } },
             { name: 'Achievements', respawnName: 'achievements', offset: { x: 0, y: -0.01 } },
             { name: 'Altar', respawnName: 'altar', offset: { x: 0, y: -0.05 } },
-            { name: 'Behind<br /> the scene', respawnName: 'behindTheScene', offset: { x: 0.01, y: 0 } },
             { name: 'Bowling', respawnName: 'bowling', offset: { x: -0.08, y: 0.03 } },
-            { name: 'Career', respawnName: 'career', offset: { x: 0, y: -0.06 } },
             { name: 'Circuit', respawnName: 'circuit', offset: { x: -0.08, y: -0.05 } },
             { name: 'Cookie', respawnName: 'cookie', offset: { x: -0.02, y: -0.01 } },
-            { name: 'Lab', respawnName: 'lab', offset: { x: -0.03, y: 0 } },
-            { name: 'Landing', respawnName: 'landing', offset: { x: 0.02, y: 0 } },
-            { name: 'Projects', respawnName: 'projects', offset: { x: 0, y: -0.02 } },
-            { name: 'Social', respawnName: 'social', offset: { x: -0.01, y: -0.04 } },
             { name: 'Time Machine', respawnName: 'timeMachine', offset: { x: 0, y: 0 } },
         ]
 

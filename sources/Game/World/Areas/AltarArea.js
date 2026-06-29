@@ -4,11 +4,22 @@ import { attribute, clamp, color, float, Fn, instancedArray, instanceIndex, lumi
 import gsap from 'gsap'
 import { alea } from 'seedrandom'
 import { Area } from './Area.js'
+import { createGroundedPropVisual } from '../PropVisual.js'
+
+const ALTAR_PLATFORM_SKIP = /^Cube\.173$|^physicalFixed\.005$/
+const ALTAR_KNUCKLES_LENGTH = 5.5
+const ALTAR_DECOR_SKIP = /^Cube\.173$|^physicalFixed\.005$|^refSkullEyes/i
 
 export class AltarArea extends Area
 {
     constructor(model)
     {
+        for(const child of [...model.children])
+        {
+            if(ALTAR_PLATFORM_SKIP.test(child.name))
+                model.remove(child)
+        }
+
         super(model)
 
         if(this.game.debug.active)
@@ -27,9 +38,8 @@ export class AltarArea extends Area
         this.progressUniform = uniform(0)
 
         this.setSounds()
-        this.setBeam()
-        this.setBeamParticles()
-        this.setGlyphs()
+        this.hideAltarMeshes()
+        this.setAltarKnuckles()
         this.setCounter()
         this.setDeathZone()
         this.setData()
@@ -77,6 +87,86 @@ export class AltarArea extends Area
             loop: false,
             volume: 0.4
         })
+    }
+
+    hideAltarMeshes()
+    {
+        for(const object of this.objects.items)
+        {
+            const object3D = object.visual?.object3D
+
+            if(!object3D)
+                continue
+
+            if(ALTAR_DECOR_SKIP.test(object3D.name ?? ''))
+            {
+                object3D.visible = false
+                object3D.traverse((child) =>
+                {
+                    if(child.isMesh)
+                        child.visible = false
+                })
+            }
+        }
+
+        for(const items of this.references.items.values())
+        {
+            for(const ref of items)
+            {
+                if(!ALTAR_DECOR_SKIP.test(ref.name ?? ''))
+                    continue
+
+                ref.visible = false
+                ref.traverse((child) =>
+                {
+                    if(child.isMesh)
+                        child.visible = false
+                })
+            }
+        }
+    }
+
+    setAltarKnuckles()
+    {
+        const source = this.game.resources.knuckles?.scene
+
+        if(!source)
+        {
+            console.warn('AltarArea: knuckles resource missing')
+            return
+        }
+
+        if(this.altarKnuckles)
+            this.altarKnuckles.removeFromParent()
+
+        const altarRef = this.references.items.get('altar')[0]
+        const point = new THREE.Vector3()
+        altarRef.getWorldPosition(point)
+        point.y = 0
+
+        const visual = createGroundedPropVisual(source, ALTAR_KNUCKLES_LENGTH, {
+            materialPrefix: 'altarKnuckles',
+        })
+
+        const group = new THREE.Group()
+        group.name = 'altarKnuckles'
+        group.position.copy(point)
+
+        const respawn = this.game.respawns.getByName('altar')?.position
+
+        if(respawn)
+        {
+            const dx = respawn.x - point.x
+            const dz = respawn.z - point.z
+            group.rotation.y = Math.atan2(dx, dz)
+        }
+
+        this.game.materials.applyObjectMaterials(visual, { useCache: false })
+        group.add(visual)
+        this.game.scene.add(group)
+        this.objects.hideable.push(group)
+
+        this.altarKnuckles = group
     }
 
     setBeam()
@@ -399,8 +489,6 @@ export class AltarArea extends Area
             'enter',
             () =>
             {
-                this.animateBeam()
-                this.animateBeamParticles()
                 this.data.insert()
                 this.updateText(this.value + 1)
                 this.game.player.die()

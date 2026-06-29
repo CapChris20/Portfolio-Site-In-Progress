@@ -159,6 +159,18 @@ export class Notifications
 
     }
 
+    clearAll()
+    {
+        this.pendings = []
+
+        if(this.current?.element)
+            this.current.element.remove()
+
+        this.current = null
+        this.timeLeft = 0
+        this.state = Notifications.STATE_HIDDEN
+    }
+
     update()
     {
         if(this.state === Notifications.STATE_VISIBLE && !this.timeHold)

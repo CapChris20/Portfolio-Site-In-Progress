@@ -1,5 +1,23 @@
 import { Game } from '../Game.js'
 import { InstancedGroup } from '../InstancedGroup.js'
+import { DRIFT_MASK } from './WorldProps.js'
+
+const HIDDEN_BENCH_NAMES = new Set([
+    'benchPhysicalDynamic.003',
+])
+
+const BENCH_HIDE_RADIUS = 5
+
+function shouldHideBench(instance)
+{
+    if(HIDDEN_BENCH_NAMES.has(instance.name))
+        return true
+
+    const dx = instance.position.x - DRIFT_MASK.x
+    const dz = instance.position.z - DRIFT_MASK.z
+
+    return Math.hypot(dx, dz) < BENCH_HIDE_RADIUS
+}
 
 export class Benches
 {
@@ -7,8 +25,20 @@ export class Benches
     {
         this.game = Game.getInstance()
 
+        const instances = this.game.resources.benchesModel.scene.children
+
         // Base and references
-        const [ base, references ] = InstancedGroup.getBaseAndReferencesFromInstances(this.game.resources.benchesModel.scene.children)
+        const [ base, allReferences ] = InstancedGroup.getBaseAndReferencesFromInstances(instances)
+        const references = []
+
+        for(let i = 0; i < instances.length; i++)
+        {
+            if(shouldHideBench(instances[i]))
+                continue
+
+            references.push(allReferences[i])
+        }
+
         base.castShadow = true
         base.receiveShadow = true
         base.frustumCulled = true

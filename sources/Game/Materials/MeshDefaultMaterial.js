@@ -6,6 +6,9 @@ export class MeshDefaultMaterial extends THREE.MeshLambertNodeMaterial
 {
     static revealDiscardNodeBuilder = (game, outputColor) =>
     {
+        if(game.reveal?.skipPortal)
+            return outputColor
+
         return Fn(([ outputColor ]) =>
         {
             const distanceToCenter = positionWorld.xz.sub(game.reveal.position2Uniform).length()

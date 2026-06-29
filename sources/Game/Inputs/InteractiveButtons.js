@@ -65,10 +65,12 @@ export class InteractiveButtons
         if(visibleCount)
         {
             this.overlay.classList.add('is-visible')
+            this.element.classList.add('has-items')
         }
         else
         {
             this.overlay.classList.remove('is-visible')
+            this.element.classList.remove('has-items')
         }
     }
 

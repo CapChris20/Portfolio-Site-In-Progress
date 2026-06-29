@@ -608,7 +608,11 @@ export class Player
         this.game.view.focusPoint.trackedPosition.copy(this.position)
 
         // View > Speed lines
-        if(this.boosting && this.accelerating && this.game.physicalVehicle.speed > 15)
+        if(
+            this.boosting &&
+            this.accelerating &&
+            this.game.physicalVehicle.speed > 15
+        )
             this.game.view.speedLines.strength = 1
         else
             this.game.view.speedLines.strength = 0

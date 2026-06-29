@@ -25,9 +25,9 @@ export class Confetti
         this.geometry = new THREE.PlaneGeometry(0.1, 0.2)
 
         this.colorsUniform = uniformArray([
-            new THREE.Color('#ffbde7'),
-            new THREE.Color('#eeff95'),
-            new THREE.Color('#84ffb5'),
+            new THREE.Color('#ff8500'),
+            new THREE.Color('#ff347e'),
+            new THREE.Color('#9333ea'),
         ])
 
         this.createPool()

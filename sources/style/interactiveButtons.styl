@@ -10,7 +10,8 @@
     -moz-user-select none
     user-select none
 
-    &.is-active
+    &.is-active,
+    &.has-items
         display block
     
     .overlay
@@ -47,15 +48,30 @@
 
         button
             display none
+            gap 0.35em
             height 80px
             justify-content center
             align-items center
-            padding-left 7vw
-            padding-right 7vw
+            padding-left 4vw
+            padding-right 4vw
             pointer-events auto
+            white-space nowrap
 
             &.is-visible
                 display flex
+
+            &.previous,
+            &.next,
+            &.open,
+            &.close
+                font-size 0.55em
+                letter-spacing 0.04em
+
+            &.previous::after,
+            &.next::after,
+            &.open::after,
+            &.close::after
+                flex-shrink 0
 
             &.interact
             &.unstuck

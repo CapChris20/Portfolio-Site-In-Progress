@@ -1,162 +1,72 @@
 export default [
     {
-        title: 'Three.js Journey',
-        titleSmall: [ 'Three.js', 'Journey' ],
-        url: 'https://threejs-journey.com',
+        title: 'Languages',
+        titleSmall: [ 'Core', 'Languages' ],
+        url: 'https://developer.mozilla.org/en-US/docs/Web',
+        description: 'Semantic HTML, modern CSS, and typed JavaScript for every project.',
         attributes:
         {
-            role: [ 'developer', 'formater' ],
-            with: [ 'Hervé Studio', 'Bonhomme Paris' ]
+            role: 'HTML, CSS',
+            at: 'JavaScript',
+            with: 'TypeScript',
         },
-        distinctions: [ 'fwa' ], // 'awwwards', 'fwa', 'cssda'
-        images:
-        [
-            'threejs-journey-1.ktx',
-            'threejs-journey-2.ktx',
-            'threejs-journey-3.ktx',
-            'threejs-journey-4.ktx',
-            'threejs-journey-5.ktx',
-        ]
-    },
-    // {
-    //     title: 'Chartogne Taillet',
-    //     titleSmall: [ 'Chartogne', 'Taillet' ],
-    //     url: 'https://chartogne-taillet.com',
-    //     attributes:
-    //     {
-    //         at: 'Immersive Garden',
-    //         role: 'WebGL developer',
-    //         with: 'Rémi Tran'
-    //     },
-    //     distinctions: [ 'awwwards', 'cssda', 'fwa' ], // 'awwwards', 'fwa', 'cssda'
-    //     images:
-    //     [
-    //         'chartogne-taillet-1.ktx',
-    //         'chartogne-taillet-2.ktx',
-    //         'chartogne-taillet-3.ktx',
-    //     ]
-    // },
-    {
-        title: 'Bonhomme | 10 ans',
-        titleSmall: [ 'Bonhomme', '10 ans' ],
-        url: 'https://anniversary.bonhommeparis.com',
-        attributes:
-        {
-            role: 'WebGL developer',
-            with: 'Bonhomme Paris'
-        },
-        distinctions: [ 'awwwards', 'fwa' ],
-        images:
-        [
-            'bonhomme-10-ans-1.ktx',
-            'bonhomme-10-ans-2.ktx',
-            'bonhomme-10-ans-3.ktx',
-        ]
+        distinctions: [],
+        images: [ 'skills-languages.png' ],
     },
     {
-        title: 'Madbox',
-        titleSmall: [ 'Madbox' ],
-        url: 'https://madbox.io',
+        title: 'Frontend',
+        titleSmall: [ 'Frontend', 'Stack' ],
+        url: 'https://react.dev',
+        description: 'Component-driven UIs with React, fast builds, and polished styling.',
         attributes:
         {
-            role: 'WebGL developer',
-            at: 'Hervé Studio',
-            with: 'Lei Xing'
+            role: 'React, Next.js',
+            at: 'Tailwind, Vite',
+            with: 'Webpack',
         },
-        distinctions: [ 'awwwards' ],
-        images:
-        [
-            'madbox-1.ktx',
-            'madbox-2.ktx',
-            'madbox-3.ktx',
-        ]
+        distinctions: [],
+        images: [ 'skills-frontend.png' ],
     },
     {
-        title: 'Luni',
-        titleSmall: [ 'Luni' ],
-        url: 'https://www.luni.app',
+        title: 'Mobile',
+        titleSmall: [ 'Mobile', 'Cloud' ],
+        url: 'https://coachconnect.app/',
+        description: 'Cross-platform apps backed by Firebase, Supabase, and Node.',
         attributes:
         {
-            role: 'WebGL developer',
-            at: 'Hervé Studio',
-            with: 'Loïc Belaidremesal'
+            role: 'React Native',
+            at: 'Firebase, Supabase',
+            with: 'Node.js',
         },
-        distinctions: [ 'awwwards', 'fwa' ],
-        images:
-        [
-            'luni-1.ktx',
-            'luni-2.ktx',
-            'luni-3.ktx',
-            'luni-4.ktx',
-        ]
+        distinctions: [],
+        images: [ 'skills-mobile.png' ],
     },
     {
-        title: 'Scout',
-        titleSmall: [ 'Scout' ],
-        url: 'https://scout-omega.vercel.app',
+        title: 'Tools',
+        titleSmall: [ 'Dev', 'Tools' ],
+        url: 'https://www.figma.com',
+        description: 'Design in Figma, ship faster with Cursor and modern bundlers.',
         attributes:
         {
-            role: 'WebGL developer',
-            at: 'Hervé Studio'
+            role: 'Figma',
+            at: 'Cursor',
+            with: 'Webpack',
         },
-        distinctions: [  ],
-        images:
-        [
-            'scout-1.ktx',
-            'scout-2.ktx',
-            'scout-3.ktx',
-        ]
+        distinctions: [],
+        images: [ 'skills-tools.png' ],
     },
     {
-        title: 'Prior Holdings',
-        titleSmall: [ 'Prio', 'Holdings' ],
-        url: 'https://prior.co.jp/discover/en',
+        title: 'APIs & AI',
+        titleSmall: [ 'APIs', 'AI' ],
+        url: 'https://stripe.com/docs/api',
+        description: 'Payments, media data, and AI integrations wired into real products.',
         attributes:
         {
-            role: [ 'Front developer', 'WebGL developer' ],
-            at: 'Immersive Garden'
+            role: 'Stripe API',
+            at: 'IMDb API',
+            with: 'Claude API',
         },
-        distinctions: [ 'awwwards', 'cssda', 'fwa' ],
-        images:
-        [
-            'prior-1.ktx',
-            'prior-2.ktx',
-            'prior-3.ktx',
-        ]
+        distinctions: [],
+        images: [ 'skills-apis.png' ],
     },
-    {
-        title: 'Orano',
-        titleSmall:  'Orano',
-        url: 'https://www.orano.group/experience/innovation/en',
-        attributes:
-        {
-            role: [ 'Front developer', 'WebGL developer' ],
-            at: 'Immersive Garden'
-        },
-        distinctions: [ 'awwwards', 'cssda', 'fwa' ],
-        images:
-        [
-            'orano-1.ktx',
-            'orano-2.ktx',
-            'orano-3.ktx',
-        ]
-    },
-    {
-        title: 'Citrix / Redbull',
-        titleSmall: ['Citrix', 'Redbull'],
-        url: 'https://thenewmobileworkforce.imm-g-prod.com',
-        attributes:
-        {
-            role: [ 'WebGL developer' ],
-            at: 'Immersive Garden',
-            with: [ 'Damien Doussaud', 'Quentin Leclercq' ]
-        },
-        distinctions: [ 'awwwards', 'cssda', 'fwa' ],
-        images:
-        [
-            'citrix-redbull-1.ktx',
-            'citrix-redbull-2.ktx',
-            'citrix-redbull-3.ktx',
-        ]
-    }
 ]

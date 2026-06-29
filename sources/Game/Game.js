@@ -46,6 +46,7 @@ import { Menu } from './Menu.js'
 import { Title } from './Title.js'
 import { PreRenderer } from './PreRenderer.js'
 import { Options } from './Options.js'
+import { Portfolio } from './Portfolio.js'
 import gsap from 'gsap'
 import { Map } from './Map.js'
 
@@ -64,7 +65,17 @@ export class Game
 
         Game.instance = this
 
-        this.init()
+        this.init().catch((error) =>
+        {
+            console.error('Game failed to start', error)
+
+            document.documentElement.classList.add('is-started')
+
+            const message = document.createElement('div')
+            message.textContent = `Failed to load: ${error?.message ?? error}. Hard refresh (Cmd+Shift+R).`
+            message.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:Nunito,sans-serif;font-size:18px;color:#fff;background:#14002a;z-index:99999;'
+            document.body.append(message)
+        })
     }
 
     async init()
@@ -98,8 +109,9 @@ export class Game
         const compressedModelSuffix = compressed ? '-compressed' : ''
         const compressedTextureFormat = compressed ? 'textureKtx' : 'texture'
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
+        this.vehicleMode = import.meta.env.VITE_VEHICLE || 'custom'
 
-        const cb = '?cb=1'
+        const cb = '?cb=80'
         this.resources = await this.resourcesLoader.load([
             [ 'respawnsReferencesModel',    `respawns/respawnsReferences${compressedModelSuffix}.glb${cb}`, 'gltf' ],
             [ 'behindTheSceneStarsTexture', `behindTheScene/stars.${compressedTextureExtension}${cb}`,      compressedTextureFormat, (resource) => { resource.colorSpace = THREE.SRGBColorSpace; resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.RepeatWrapping; resource.wrapT = THREE.RepeatWrapping; } ],
@@ -108,8 +120,10 @@ export class Game
 
         ])
         this.options = new Options()
+        this.portfolio = new Portfolio()
         this.respawns = new Respawns(import.meta.env.VITE_PLAYER_SPAWN || 'landing')
         this.view = new View()
+        this.quality.applyPerformanceSettings()
         this.rendering.setPostprocessing()
         this.rendering.start()
         this.reveal = new Reveal()
@@ -134,22 +148,21 @@ export class Game
                 [ 'foliageTexture',                        `foliage/foliageSDF.${compressedTextureExtension}${cb}`,                              compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; } ],
                 [ 'bushesReferences',                      `bushes/bushesReferences${compressedModelSuffix}.glb${cb}`,                           'gltf' ],
                 [ 'vehicle',                               `vehicle/default${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
+                [ 'customVehicle',                         `vehicle/lightningMcqueen${compressedModelSuffix}.glb${cb}`,                          'gltf' ],
+                [ 'retrowaveCar',                          `props/retrowaveCar${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
                 [ 'playgroundVisual',                      `playground/playgroundVisual${compressedModelSuffix}.glb${cb}`,                       'gltf' ],
                 [ 'playgroundPhysical',                    `playground/playgroundPhysical${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
                 [ 'flowersReferencesModel',                `flowers/flowersReferences${compressedModelSuffix}.glb${cb}`,                         'gltf' ],
                 [ 'bricksModel',                           `bricks/bricks${compressedModelSuffix}.glb${cb}`,                                     'gltf' ],
                 [ 'fencesModel',                           `fences/fences${compressedModelSuffix}.glb${cb}`,                                     'gltf' ],
                 [ 'benchesModel',                          `benches/benches${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
-                [ 'explosiveCratesModel',                  `explosiveCrates/explosiveCrates${compressedModelSuffix}.glb${cb}`,                   'gltf' ],
                 [ 'lanternsModel',                         `lanterns/lanterns${compressedModelSuffix}.glb${cb}`,                                 'gltf' ],
                 [ 'terrainTexture',                        `terrain/terrain.${compressedTextureExtension}${cb}`,                                 compressedTextureFormat, (resource) => { resource.flipY = false; } ],
                 [ 'terrainModel',                          `terrain/terrain${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'floorSlabsTexture',                     `floor/slabs.${compressedTextureExtension}`,                                     compressedTextureFormat, (resource) => { resource.wrapS = THREE.RepeatWrapping; resource.wrapT = THREE.RepeatWrapping; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
-                [ 'birchTreesVisualModel',                 `birchTrees/birchTreesVisual${compressedModelSuffix}.glb${cb}`,                       'gltf' ],
+                [ 'palmTreesVisualModel',                  `palmTrees/palmTreesVisual${compressedModelSuffix}.glb${cb}`,                         'gltf' ],
                 [ 'birchTreesReferencesModel',             `birchTrees/birchTreesReferences${compressedModelSuffix}.glb${cb}`,                   'gltf' ],
-                [ 'oakTreesVisualModel',                   `oakTrees/oakTreesVisual${compressedModelSuffix}.glb${cb}`,                           'gltf' ],
                 [ 'oakTreesReferencesModel',               `oakTrees/oakTreesReferences${compressedModelSuffix}.glb${cb}`,                                               'gltf' ],
-                [ 'cherryTreesVisualModel',                `cherryTrees/cherryTreesVisual${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
                 [ 'cherryTreesReferencesModel',            `cherryTrees/cherryTreesReferences${compressedModelSuffix}.glb${cb}`,                 'gltf' ],
                 [ 'sceneryModel',                          `scenery/scenery${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'areasModel',                            `areas/areas${compressedModelSuffix}.glb${cb}`,                                       'gltf' ],
@@ -171,10 +184,24 @@ export class Game
                 [ 'careerUzikTexture',                     `career/careerUzik.${compressedTextureExtension}${cb}`,                               compressedTextureFormat, (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'timeMachineScreenMGSTexture',           `timeMachine/timeMachineScreenMGS.${compressedTextureExtension}${cb}`,                compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
                 [ 'timeMachineScreenFolioTexture',         `timeMachine/timeMachineScreenFolio.${compressedTextureExtension}${cb}`,              compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
+                [ 'landingStatue',                         `props/landingStatue${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
+                [ 'neonJesus',                             `props/neonJesus${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
+                [ 'lionStatue',                            `props/lionStatue${compressedModelSuffix}.glb${cb}`,                                  'gltf' ],
+                [ 'gameboy',                               `props/gameboy${compressedModelSuffix}.glb${cb}`,                                     'gltf' ],
+                [ 'knuckles',                              `props/knuckles${compressedModelSuffix}.glb${cb}`,                                    'gltf' ],
+                [ 'kratos',                                `props/kratos${compressedModelSuffix}.glb${cb}`,                                        'gltf' ],
+                [ 'roadSurface',                           `props/road${compressedModelSuffix}.glb${cb}`,                                          'gltf' ],
+                [ 'driftMask',                             `props/driftMask${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
+                [ 'pistonHorse',                           `props/pistonHorse${compressedModelSuffix}.glb${cb}`,                                 'gltf' ],
+                [ 'sonic',                                 `props/sonic${compressedModelSuffix}.glb${cb}`,                                       'gltf' ],
+                [ 'motorcycle',                            `props/motorcycle${compressedModelSuffix}.glb${cb}`,                                  'gltf' ],
+                [ 'pyramid',                               `props/pyramid${compressedModelSuffix}.glb${cb}`,                                     'gltf' ],
+                [ 'retrowaveCarRemake',                    `props/retrowaveCarRemake${compressedModelSuffix}.glb${cb}`,                          'gltf' ],
             ],
             (toLoad, total) =>
             {
-                this.world.intro.updateProgress(1 - toLoad / total)
+                const progress = 1 - toLoad / total
+                this.reveal?.setHeroLoadProgress(progress)
             }
         )
 
@@ -199,14 +226,11 @@ export class Game
         this.world.step(1)
         this.overlay = new Overlay()
 
-        // Pre-render if quality high
-        if(this.quality.level === 0 && this.rendering.renderer.backend.isWebGPUBackend)
-            PreRenderer.render()
+        // Pre-render disabled — expensive cube-map pass on startup, minimal visual gain
+        // if(this.quality.level === 0 && this.rendering.renderer.backend.isWebGPUBackend)
+        //     PreRenderer.render()
 
-        this.ticker.wait(3, () =>
-        {
-            this.reveal.updateStep(0)
-        })
+        this.reveal.waitForHeroStart()
 
         // Debug achievement
         if(this.debug.active)
@@ -226,10 +250,6 @@ export class Game
             // Objects reset
             this.objects.resetAll()
 
-            // Explosive crates
-            if(this.world.explosiveCrates)
-                this.world.explosiveCrates.reset()
-
             // Bowling
             if(this.world.areas.bowling)
                 this.world.areas.bowling.restart()
@@ -244,10 +264,7 @@ export class Game
 
             // Social
             if(this.world.areas.social)
-            {
                 this.world.areas.social.statue.down = false
-                this.world.areas.social.fans.instancedGroup.needsUpdate = true
-            }
             
             // Benches
             if(this.world.benches)

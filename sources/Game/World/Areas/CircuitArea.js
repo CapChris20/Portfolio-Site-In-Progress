@@ -1411,8 +1411,6 @@ export class CircuitArea extends Area
             // Objects
             this.resetObjects.reset()
 
-            // Crates (all crates in the world?)
-            this.game.world.explosiveCrates.reset()
 
             // Weather
             this.game.weather.override.start(
@@ -1576,9 +1574,6 @@ export class CircuitArea extends Area
 
                 // Rails
                 this.rails.deactivate()
-                
-                // Crates (all crates in the world?)
-                this.game.world.explosiveCrates.reset()
 
                 // Podium => Show
                 if(!forced)

@@ -1,0 +1,127 @@
+.hero
+    position fixed
+    inset 0
+    z-index 50
+    display flex
+    align-items center
+    justify-content center
+    color #ffffff
+    pointer-events auto
+    transition opacity 0.55s ease, visibility 0.55s ease
+
+    &.is-leaving
+        opacity 0
+        visibility hidden
+        pointer-events none
+
+.hero-backdrop
+    position absolute
+    inset 0
+    background #14002a
+    background radial-gradient(ellipse 130% 90% at 15% 0%, #ff8500 0%, #ff850000 42%), radial-gradient(ellipse 120% 85% at 85% 100%, #9333ea 0%, #9333ea00 48%), linear-gradient(145deg, #14002a 0%, #2d004f 45%, #14002a 100%)
+
+    &::after
+        content ''
+        position absolute
+        inset 0
+        opacity 0.55
+        background-image radial-gradient(circle at 50% 120%, #e040fb33 0, transparent 55%), linear-gradient(180deg, #ffffff08 0%, transparent 35%)
+
+.hero-content
+    position relative
+    z-index 1
+    width min(92vw, 640px)
+    padding 48px 24px
+    text-align center
+
+.hero-eyebrow
+    margin-bottom 12px
+    font-size 0.75rem
+    font-weight 700
+    letter-spacing 0.32em
+    text-transform uppercase
+    color #ffb997
+
+.hero-title
+    margin 0 0 16px
+    font-family "Amatic SC", sans-serif
+    font-size clamp(4rem, 14vw, 6.5rem)
+    font-weight 700
+    line-height 0.95
+    letter-spacing 0.04em
+    background linear-gradient(135deg, #ffb997 0%, #ff8500 35%, #e040fb 70%, #9333ea 100%)
+    background-clip text
+    -webkit-background-clip text
+    color transparent
+    filter drop-shadow(0 0 28px #ff850066)
+
+.hero-subtitle
+    margin 0 0 40px
+    font-size clamp(1rem, 2.8vw, 1.15rem)
+    color #ffffffcc
+
+.hero-loader
+    margin 0
+    font-size 0.95rem
+    font-weight 700
+    letter-spacing 0.08em
+    text-transform uppercase
+    color #ffb997cc
+    animation heroPulse 1.4s ease-in-out infinite
+
+    &.is-hidden
+        display none
+
+.hero-start
+    display none
+    flex-direction column
+    align-items center
+    gap 8px
+    margin 0 auto
+    padding 18px 36px
+    border 1px solid #ff850088
+    border-radius 999px
+    background linear-gradient(135deg, #ff850028 0%, #9333ea28 100%)
+    backdrop-filter blur(10px)
+    box-shadow 0 0 32px #9333ea44, 0 0 48px #ff850022
+    color #ffffff
+    cursor pointer
+    transition transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease
+    animation heroPulse 2s ease-in-out infinite
+
+    &.is-visible
+        display inline-flex
+
+    &:hover
+        transform scale(1.04)
+        border-color #ffb997
+        box-shadow 0 0 40px #9333ea66, 0 0 56px #ff850044
+
+    &:active
+        transform scale(0.98)
+
+.hero-start-label
+    font-size 1.05rem
+    font-weight 900
+    letter-spacing 0.12em
+    text-transform uppercase
+
+.hero-start-hint
+    font-size 0.72rem
+    font-weight 700
+    letter-spacing 0.14em
+    text-transform uppercase
+    color #ffffffaa
+
+html.has-hero
+    background radial-gradient(farthest-side at 0 0, #ff8500, #9333ea)
+
+    .menu-trigger,
+    .map-trigger
+        display none !important
+
+@keyframes heroPulse
+    0%, 100%
+        opacity 1
+    50%
+        opacity 0.72

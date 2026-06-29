@@ -3,7 +3,11 @@ import { add, color, cos, float, Fn, instancedArray, instancedBufferAttribute, i
 import { InteractivePoints } from '../../InteractivePoints.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
 import { Area } from './Area.js'
+import { createGroundedPropVisual } from '../PropVisual.js'
 import { alea } from 'seedrandom'
+
+const ACHIEVEMENTS_PILLAR_SKIP = /^Cube\.110$/
+const ACHIEVEMENTS_KRATOS_LENGTH = 5.5
 
 const rng = new alea('achievements')
 
@@ -11,11 +15,19 @@ export class AchievementsArea extends Area
 {
     constructor(model)
     {
+        for(const child of [...model.children])
+        {
+            if(ACHIEVEMENTS_PILLAR_SKIP.test(child.name))
+                model.remove(child)
+        }
+
         super(model)
 
         this.setSounds()
         this.setWaterfall()
-        this.setPillar()
+        this.hidePillarMesh()
+        this.setKratos()
+        this.setGlyphs()
         this.setInteractivePoint()
         this.setAchievement()
     }
@@ -202,9 +214,88 @@ export class AchievementsArea extends Area
         }
     }
 
-    setPillar()
+    hidePillarMesh()
     {
         this.pillar = this.references.items.get('pillar')[0]
+
+        if(this.pillar)
+        {
+            this.pillar.visible = false
+            this.pillar.traverse((child) =>
+            {
+                if(child.isMesh)
+                    child.visible = false
+            })
+        }
+
+        for(const object of this.objects.items)
+        {
+            const object3D = object.visual?.object3D
+
+            if(!object3D || !ACHIEVEMENTS_PILLAR_SKIP.test(object3D.name ?? ''))
+                continue
+
+            object3D.visible = false
+            object3D.traverse((child) =>
+            {
+                if(child.isMesh)
+                    child.visible = false
+            })
+        }
+    }
+
+    setKratos()
+    {
+        const source = this.game.resources.kratos?.scene
+
+        if(!source)
+        {
+            console.warn('AchievementsArea: kratos resource missing')
+            return
+        }
+
+        if(this.kratos)
+            this.kratos.removeFromParent()
+
+        const pillarRef = this.references.items.get('pillar')?.[0]
+
+        if(!pillarRef)
+            return
+
+        const point = new THREE.Vector3()
+        pillarRef.getWorldPosition(point)
+        point.y = 0
+
+        const visual = createGroundedPropVisual(source, ACHIEVEMENTS_KRATOS_LENGTH, {
+            materialPrefix: 'achievementsKratos',
+        })
+
+        const group = new THREE.Group()
+        group.name = 'achievementsKratos'
+        group.position.copy(point)
+        this.kratosBaseY = point.y
+
+        const respawn = this.game.respawns.getByName('achievements')?.position
+
+        if(respawn)
+        {
+            const dx = respawn.x - point.x
+            const dz = respawn.z - point.z
+            group.rotation.y = Math.atan2(dx, dz)
+        }
+
+        this.game.materials.applyObjectMaterials(visual, { useCache: false })
+        group.add(visual)
+        this.game.scene.add(group)
+        this.objects.hideable.push(group)
+
+        this.kratos = group
+    }
+
+    setGlyphs()
+    {
+        if(!this.pillar)
+            return
 
         // Glyphs
         {
@@ -344,6 +435,9 @@ export class AchievementsArea extends Area
 
     update()
     {
-        this.pillar.position.y = Math.sin(this.game.ticker.elapsedScaled * 0.1) * 0.25
+        if(!this.kratos)
+            return
+
+        this.kratos.position.y = this.kratosBaseY + Math.sin(this.game.ticker.elapsedScaled * 0.1) * 0.25
     }
 }

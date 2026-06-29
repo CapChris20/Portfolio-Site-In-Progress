@@ -7,6 +7,8 @@ export class Viewport
         this.domElement = domElement
 
         this.events = new Events()
+
+        this.pixelRatioMax = 2
         
         this.measure()
         this.setResize()
@@ -21,7 +23,17 @@ export class Viewport
         this.ratio = this.width / this.height
 
         this.pixelRatioPure = window.devicePixelRatio
-        this.pixelRatioMax = 2
+        this.updatePixelRatio()
+    }
+
+    setPixelRatioMax(max)
+    {
+        this.pixelRatioMax = max
+        this.updatePixelRatio()
+    }
+
+    updatePixelRatio()
+    {
         this.pixelRatio = Math.min(this.pixelRatioPure, this.pixelRatioMax)
     }
 

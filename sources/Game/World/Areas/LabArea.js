@@ -8,6 +8,7 @@ import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGe
 import { remapClamp, safeMod, signedModDelta } from '../../utilities/maths.js'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
+import { OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
 import { Area } from './Area.js'
 
 export class LabArea extends Area
@@ -90,7 +91,7 @@ export class LabArea extends Area
     {
         this.interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('interactivePoint')[0].position,
-            'Lab',
+            'Projects',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -220,7 +221,7 @@ export class LabArea extends Area
 
         this.shadeMix.texts = {}
         this.shadeMix.texts.min = 0.1
-        this.shadeMix.texts.max = 0.3
+        this.shadeMix.texts.max = 1
         this.shadeMix.texts.mixUniform = uniform(this.shadeMix.texts.min)
 
         // Debug
@@ -465,18 +466,18 @@ export class LabArea extends Area
                 resource = {}
                 resource.loaded = false
 
-                const loader = this.game.resourcesLoader.getLoader('textureKtx')
+                const loader = this.game.resourcesLoader.getLoader(key.endsWith('.ktx') ? 'textureKtx' : 'texture')
 
                 loader.load(
                     path,
                     (loadedTexture) =>
                     {
                         resource.texture = loadedTexture
-                        resource.colorSpace = THREE.SRGBColorSpace
-                        resource.flipY = false
-                        resource.magFilter = THREE.LinearFilter
-                        resource.minFilter = THREE.LinearFilter
-                        resource.generateMipmaps = false
+                        loadedTexture.colorSpace = THREE.SRGBColorSpace
+                        loadedTexture.flipY = false
+                        loadedTexture.magFilter = THREE.LinearFilter
+                        loadedTexture.minFilter = THREE.LinearFilter
+                        loadedTexture.generateMipmaps = false
 
                         resource.loaded = true
                         
@@ -638,13 +639,21 @@ export class LabArea extends Area
         this.url.group = this.references.items.get('url')[0]
         this.url.inner = this.url.group.children[0]
 
+        const frame = this.images.mesh.parent
+        if(frame)
+        {
+            frame.add(this.url.group)
+            this.url.group.position.copy(positionRelativeToImages(this.images.mesh, OFFSET_FROM_IMAGES.url))
+            this.url.group.rotation.set(0, 0, 0)
+        }
+
         // Text
         this.url.textMesh = this.url.inner.children.find(_child => _child.name.startsWith('text'))
         this.url.panel = this.url.inner.children.find(_child => _child.name.startsWith('panel'))
         this.url.textCanvas = new TextCanvas(
             this.texts.fontFamily,
             this.texts.fontWeight,
-            this.texts.fontSizeMultiplier * 0.23,
+            this.texts.fontSizeMultiplier * 0.26,
             4,
             0.2,
             this.texts.density,
@@ -686,6 +695,9 @@ export class LabArea extends Area
         // Intersect
         const intersect = this.references.items.get('intersectUrl')[0]
         intersect.visible = false
+        this.url.group.add(intersect)
+        intersect.position.set(0, 0, 0.12)
+        intersect.scale.set(2.2, 0.45, 0.6)
  
         this.url.intersect = this.game.rayCursor.addIntersect({
             active: false,
@@ -704,6 +716,31 @@ export class LabArea extends Area
             }
         })
 
+        this.url.setLabel = () =>
+        {
+            const link = this.navigation?.current?.url
+
+            if(!link)
+            {
+                this.url.group.visible = true
+                this.url.textCanvas.updateText('coming soon')
+                this.url.intersect.active = false
+
+                const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
+                this.url.panel.scale.x = ratio + 0.35
+                return
+            }
+
+            this.url.group.visible = true
+            this.url.textCanvas.updateText('visit site')
+            this.url.intersect.active = this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING
+
+            const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
+            this.url.panel.scale.x = ratio + 0.35
+
+            intersect.getWorldPosition(this.url.intersect.position)
+        }
+
         // Update
         this.url.update = (direction) =>
         {
@@ -721,10 +758,7 @@ export class LabArea extends Area
 
                 gsap.to(this.url.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 1, delay: 0, ease: 'back.out(2)', overwrite: true })
 
-                this.url.textCanvas.updateText(this.navigation.current.url.replace(/https?:\/\//, ''))
-
-                const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
-                this.url.panel.scale.x = ratio + 0.2
+                this.url.setLabel()
 
             } })
         }
@@ -732,10 +766,10 @@ export class LabArea extends Area
         // Open
         this.url.open = () =>
         {
-            if(this.navigation.current.url)
-            {
-                window.open(this.navigation.current.url, '_blank')
-            }
+            const url = this.navigation.current.url
+
+            if(url)
+                window.open(url, '_blank')
         }
     }
 
@@ -838,7 +872,7 @@ export class LabArea extends Area
                         if(mini.startedLoading)
                             return
 
-                        const loader = this.game.resourcesLoader.getLoader('textureKtx')
+                        const loader = this.game.resourcesLoader.getLoader(project.imageMini.endsWith('.ktx') ? 'textureKtx' : 'texture')
 
                         loader.load(
                             `lab/images/${project.imageMini}`,
@@ -1073,54 +1107,86 @@ export class LabArea extends Area
         this.blackBoard.labelsMouseKeyboard.castShadow = false
         this.blackBoard.labelsGamepadPlaystation.visible = false
         this.blackBoard.labelsGamepadXbox.visible = false
+
+        // Dynamic project description on the same board face
+        this.blackBoard.descriptionMesh = this.blackBoard.labelsMouseKeyboard.clone()
+        this.blackBoard.descriptionMesh.name = 'blackboardDescription'
+        this.blackBoard.descriptionMesh.visible = false
+        this.blackBoard.group.add(this.blackBoard.descriptionMesh)
+
+        this.blackBoard.descriptionCanvas = new TextCanvas(
+            this.texts.fontFamily,
+            this.texts.fontWeight,
+            this.texts.fontSizeMultiplier * 0.24,
+            3.4,
+            2.6,
+            this.texts.density,
+            'center',
+            0.3,
+        )
+        this.texts.createMaterialOnMesh(this.blackBoard.descriptionMesh, this.blackBoard.descriptionCanvas.texture)
+
+        this.blackBoard.updateContent = () =>
+        {
+            const isOpen = this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING
+
+            if(isOpen)
+            {
+                this.blackBoard.labelsGamepadPlaystation.visible = false
+                this.blackBoard.labelsGamepadXbox.visible = false
+                this.blackBoard.labelsMouseKeyboard.visible = false
+                this.blackBoard.descriptionMesh.visible = true
+
+                const lines = wrapDescription(this.navigation.current?.description ?? '', 38, 5)
+                this.blackBoard.descriptionCanvas.updateText(lines.length ? lines : [''])
+            }
+            else
+            {
+                this.blackBoard.descriptionMesh.visible = false
+                this.showBlackBoardControlLabels()
+            }
+        }
         
         this.game.inputs.events.on('modeChange', () =>
         {
-            if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
-            {
-                if(this.game.inputs.gamepad.type === 'xbox')
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = true
-                    this.blackBoard.labelsGamepadPlaystation.visible = false
-                }
-                else
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = false
-                    this.blackBoard.labelsGamepadPlaystation.visible = true
-                }
-                this.blackBoard.labelsMouseKeyboard.visible = false
-
-                this.blackBoard.parent.add(this.blackBoard.group)
-            }
-            else if(this.game.inputs.mode === Inputs.MODE_MOUSEKEYBOARD)
-            {
-                this.blackBoard.labelsGamepadXbox.visible = false
-                this.blackBoard.labelsGamepadPlaystation.visible = false
-                this.blackBoard.labelsMouseKeyboard.visible = true
-                this.blackBoard.parent.add(this.blackBoard.group)
-            }
-            else if(this.game.inputs.mode === Inputs.MODE_TOUCH)
-            {
-                this.blackBoard.parent.remove(this.blackBoard.group)
-            }
+            this.blackBoard.updateContent()
         })
 
         this.game.inputs.gamepad.events.on('typeChange', () =>
         {
-            if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
-            {
-                if(this.game.inputs.gamepad.type === 'xbox')
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = true
-                    this.blackBoard.labelsGamepadPlaystation.visible = false
-                }
-                else
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = false
-                    this.blackBoard.labelsGamepadPlaystation.visible = true
-                }
-            }
+            this.blackBoard.updateContent()
         })
+
+        this.blackBoard.updateContent()
+    }
+
+    showBlackBoardControlLabels()
+    {
+        if(this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING)
+            return
+
+        this.blackBoard.labelsGamepadPlaystation.visible = false
+        this.blackBoard.labelsGamepadXbox.visible = false
+        this.blackBoard.labelsMouseKeyboard.visible = false
+
+        if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
+        {
+            if(this.game.inputs.gamepad.type === 'xbox')
+                this.blackBoard.labelsGamepadXbox.visible = true
+            else
+                this.blackBoard.labelsGamepadPlaystation.visible = true
+
+            this.blackBoard.parent.add(this.blackBoard.group)
+        }
+        else if(this.game.inputs.mode === Inputs.MODE_MOUSEKEYBOARD)
+        {
+            this.blackBoard.labelsMouseKeyboard.visible = true
+            this.blackBoard.parent.add(this.blackBoard.group)
+        }
+        else if(this.game.inputs.mode === Inputs.MODE_TOUCH)
+        {
+            this.blackBoard.parent.remove(this.blackBoard.group)
+        }
     }
 
     setCandleFlames()
@@ -1315,6 +1381,13 @@ export class LabArea extends Area
         this.adjacents.nextIntersect.active = true
         this.adjacents.previousIntersect.active = true
         this.url.intersect.active = true
+        this.url.setLabel()
+
+        this.url.status = 'hidden'
+        this.url.update(LabArea.DIRECTION_NEXT)
+        this.title.status = 'hidden'
+        this.title.update(LabArea.DIRECTION_NEXT)
+        this.blackBoard.updateContent()
 
         // Deactivate physical vehicle
         this.game.physicalVehicle.deactivate()
@@ -1377,6 +1450,8 @@ export class LabArea extends Area
         // Buttons
         this.game.inputs.interactiveButtons.clearItems()
 
+        this.blackBoard.updateContent()
+
         // Sound
         const sound = this.game.audio.groups.get('click')
         if(sound)
@@ -1431,6 +1506,8 @@ export class LabArea extends Area
         // Update components
         this.title.update(direction)
         this.url.update(direction)
+        this.url.setLabel()
+        this.blackBoard.updateContent()
         this.images.update()
 
         // Scroller

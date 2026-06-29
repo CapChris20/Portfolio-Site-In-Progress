@@ -48,7 +48,7 @@ export class Rendering
         this.renderer.sortObjects = false
 
         this.renderer.domElement.classList.add('experience')
-        this.renderer.shadowMap.enabled = true
+        this.renderer.shadowMap.enabled = this.game.quality.level === 0
         // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
         this.renderer.setOpaqueSort((a, b) =>
         {
@@ -79,12 +79,13 @@ export class Rendering
         const scenePassColor = scenePass.getTextureNode('output')
 
         this.bloomPass = bloom(scenePassColor)
-        this.bloomPass._nMips = this.game.quality.level === 0 ? 5 : 2
+        this.bloomPass._nMips = this.game.quality.level === 0 ? 3 : 2
         this.bloomPass.threshold.value = 1
-        this.bloomPass.strength.value = 0.25
+        this.bloomPass.strength.value = this.game.quality.level === 0 ? 0.22 : 0.15
         this.bloomPass.smoothWidth.value = 1
 
         this.cheapDOFPass = cheapDOF(renderOutput(scenePass))
+        this.cheapDOFPass.repeats.value = this.game.quality.level === 0 ? 12 : 8
 
         // Quality
         const qualityChange = (level) =>
@@ -97,6 +98,13 @@ export class Rendering
             {
                 this.postProcessing.outputNode = scenePassColor.add(this.bloomPass)
             }
+
+            this.bloomPass._nMips = level === 0 ? 5 : 2
+            this.bloomPass.strength.value = level === 0 ? 0.25 : 0.15
+            this.renderer.shadowMap.enabled = level === 0
+
+            if(this.game.lighting?.light)
+                this.game.lighting.light.castShadow = level === 0
 
             this.postProcessing.needsUpdate = true
         }

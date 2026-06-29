@@ -12,6 +12,7 @@ import { Lightnings } from './Lightnings.js'
 import { Snow } from './Snow.js'
 import { Whispers } from './Whispers.js'
 import { VisualVehicle } from './VisualVehicle.js'
+import { CustomVisualVehicle } from './CustomVisualVehicle.js'
 import { VisualTornado } from './VisualTornado.js'
 import { Flowers } from './Flowers.js'
 import { Bricks } from './Bricks.js'
@@ -19,7 +20,6 @@ import { Trees } from './Trees.js'
 import { Bushes } from './Bushes.js'
 import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
 import { Fireballs } from './Fireballs.js'
-import { ExplosiveCrates } from './ExplosiveCrates.js'
 import { RainLines } from './RainLines.js'
 import { Confetti } from './Confetti.js'
 import { Intro } from './Intro.js'
@@ -28,6 +28,7 @@ import { Lanterns } from './Lanterns.js'
 import { Fences } from './Fences.js'
 import { Benches } from './Benches.js'
 import { Scenery } from './Scenery.js'
+import { WorldProps, filterReferencesNearEntranceStatue } from './WorldProps.js'
 
 export class World
 {
@@ -48,12 +49,18 @@ export class World
     {
         if(step === 0)
         {
-            this.grid = new Grid()
-            this.intro = new Intro()
+            if(!this.game.reveal?.skipPortal)
+            {
+                this.grid = new Grid()
+                this.intro = new Intro()
+            }
         }
         else if(step === 1)
         {
-            this.visualVehicle = new VisualVehicle(this.game.resources.vehicle.scene)
+            if(this.game.vehicleMode === 'custom')
+                this.visualVehicle = new CustomVisualVehicle(this.game.resources.customVehicle.scene)
+            else
+                this.visualVehicle = new VisualVehicle(this.game.resources.vehicle.scene)
             this.floor = new Floor()
             this.waterSurface = new WaterSurface()
             this.grass = new Grass()
@@ -66,17 +73,24 @@ export class World
             this.snow = new Snow()
             this.visualTornado = new VisualTornado()
             this.bushes = new Bushes()
-            this.birchTrees = new Trees('Birch Tree', this.game.resources.birchTreesVisualModel.scene, this.game.resources.birchTreesReferencesModel.scene.children, '#ff4f2b', '#ff903f')
-            this.oakTrees = new Trees('Oak Tree', this.game.resources.oakTreesVisualModel.scene, this.game.resources.oakTreesReferencesModel.scene.children, '#b4b536', '#d8cf3b')
-            this.cherryTrees = new Trees('Cherry Tree', this.game.resources.cherryTreesVisualModel.scene, this.game.resources.cherryTreesReferencesModel.scene.children, '#ff6d6d', '#ff9990')
+            const palmVisual = this.game.resources.palmTreesVisualModel.scene
+            const palmColorA = '#2d6a31'
+            const palmColorB = '#6bbf59'
+            const palmReferences = filterReferencesNearEntranceStatue([
+                ...this.game.resources.birchTreesReferencesModel.scene.children,
+                ...this.game.resources.oakTreesReferencesModel.scene.children,
+                ...this.game.resources.cherryTreesReferencesModel.scene.children,
+            ])
+
+            this.palmTrees = new Trees('Palm Tree', palmVisual, palmReferences, palmColorA, palmColorB, 28)
             this.flowers = new Flowers()
             this.bricks = new Bricks()
             this.fences = new Fences()
             this.benches = new Benches()
-            this.explosiveCrates = new ExplosiveCrates()
             this.poleLights = new PoleLights()
             this.lanterns = new Lanterns()
             this.scenery = new Scenery()
+            this.worldProps = new WorldProps()
             this.areas = new Areas()
         }
         else if(step === 2)

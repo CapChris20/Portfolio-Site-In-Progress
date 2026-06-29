@@ -7,6 +7,7 @@ import { TextCanvas } from '../../TextCanvas.js'
 import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGeometry, sin, step, texture, uniform, uv, vec3, vec4 } from 'three/tsl'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
+import { OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
 import { Area } from './Area.js'
 
 export class ProjectsArea extends Area
@@ -87,7 +88,7 @@ export class ProjectsArea extends Area
     {
         this.interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('interactivePoint')[0].position,
-            'Projects',
+            'Skills',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -219,7 +220,7 @@ export class ProjectsArea extends Area
 
         this.shadeMix.texts = {}
         this.shadeMix.texts.min = 0.1
-        this.shadeMix.texts.max = 0.3
+        this.shadeMix.texts.max = 1
         this.shadeMix.texts.mixUniform = uniform(this.shadeMix.texts.min)
 
         // Debug
@@ -468,7 +469,7 @@ export class ProjectsArea extends Area
         // Get resource and load
         this.images.getResourceAndLoad = (key) =>
         {
-            const path = `projects/images/${key}`
+            const path = `projects/images/${key}?v=4`
             
             // Try to retrieve resource
             let resource = this.images.resources.get(key)
@@ -479,18 +480,18 @@ export class ProjectsArea extends Area
                 resource = {}
                 resource.loaded = false
 
-                const loader = this.game.resourcesLoader.getLoader('textureKtx')
+                const loader = this.game.resourcesLoader.getLoader(key.endsWith('.ktx') ? 'textureKtx' : 'texture')
 
                 loader.load(
                     path,
                     (loadedTexture) =>
                     {
                         resource.texture = loadedTexture
-                        resource.colorSpace = THREE.SRGBColorSpace
-                        resource.flipY = false
-                        resource.magFilter = THREE.LinearFilter
-                        resource.minFilter = THREE.LinearFilter
-                        resource.generateMipmaps = false
+                        loadedTexture.colorSpace = THREE.SRGBColorSpace
+                        loadedTexture.flipY = false
+                        loadedTexture.magFilter = THREE.LinearFilter
+                        loadedTexture.minFilter = THREE.LinearFilter
+                        loadedTexture.generateMipmaps = false
 
                         resource.loaded = true
                         
@@ -696,24 +697,27 @@ export class ProjectsArea extends Area
         this.attributes.items = {}
         this.attributes.status = 'hidden'
         this.attributes.originalY = this.attributes.group.position.y
+        this.attributes.group.visible = true
 
         for(const child of this.attributes.group.children)
         {
             const item = {}
-            // item.textCanvas = this.texts[child.name]
+            const isDescription = child.name === 'role'
+
             item.group = child
             item.visible = false
             item.group.visible = false
+            item.panel = item.group.children.find(_child => _child.name.startsWith('panel'))
             const textMesh = item.group.children.find(_child => _child.name.startsWith('text'))
             item.textCanvas = new TextCanvas(
                 this.texts.fontFamily,
                 this.texts.fontWeight,
-                this.texts.fontSizeMultiplier * 0.23,
-                1.4,
-                0.45,
+                this.texts.fontSizeMultiplier * (isDescription ? 0.18 : 0.26),
+                isDescription ? 5 : 1.4,
+                isDescription ? 2.2 : 0.45,
                 this.texts.density,
                 'center',
-                0.2
+                isDescription ? 0.22 : 0.2
             )
 
             this.texts.createMaterialOnMesh(textMesh, item.textCanvas.texture)
@@ -732,6 +736,9 @@ export class ProjectsArea extends Area
             {
                 const item = this.attributes.items[name]
 
+                if(!item)
+                    continue
+
                 gsap.to(item.group.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.5, delay: 0.1 * i, ease: 'power2.in', overwrite: true })
                 i++
             }
@@ -744,22 +751,46 @@ export class ProjectsArea extends Area
                 for(const name of this.attributes.names)
                 {
                     const item = this.attributes.items[name]
-                    const attribute = this.navigation.current.attributes[name]
 
-                    if(attribute)
+                    if(!item)
+                        continue
+
+                    let attribute = null
+
+                    if(name === 'role')
+                        attribute = wrapDescription(this.navigation.current.description ?? '', 28, 4)
+                    else
+                        attribute = this.navigation.current.attributes?.[name]
+
+                    if(Array.isArray(attribute) && name !== 'role')
+                        attribute = attribute.join(', ')
+
+                    if(attribute && (!Array.isArray(attribute) || attribute.length))
                     {
                         item.group.visible = true
                         gsap.to(item.group.scale, { x: 1, y: 1, z: 1, duration: 1, delay: 0.2 * i, ease: 'back.out(2)', overwrite: true })
 
                         item.textCanvas.updateText(attribute)
 
+                        if(name === 'role' && item.panel)
+                        {
+                            const lines = Array.isArray(attribute) ? attribute : [attribute]
+                            const ratio = item.textCanvas.getMeasure().width / this.texts.density
+                            item.panel.scale.x = Math.max(ratio + 0.45, 1.6)
+                            item.panel.scale.y = 0.35 + lines.length * 0.22
+                        }
+
                         item.group.position.y = - i * 0.75
                         
                         i++
                     }
+                    else
+                    {
+                        item.group.visible = false
+                    }
                 }
 
-                this.attributes.group.position.y = this.attributes.originalY + (i - 1) * 0.75 / 2
+                this.attributes.group.position.y = this.attributes.originalY + Math.max(i - 1, 0) * 0.75 / 2
             })
         }
     }
@@ -936,13 +967,22 @@ export class ProjectsArea extends Area
         this.url.group = this.references.items.get('url')[0]
         this.url.inner = this.url.group.children[0]
 
+        // Mount above the wooden image frame
+        const frame = this.images.mesh.parent
+        if(frame)
+        {
+            frame.add(this.url.group)
+            this.url.group.position.copy(positionRelativeToImages(this.images.mesh, OFFSET_FROM_IMAGES.url))
+            this.url.group.rotation.set(0, 0, 0)
+        }
+
         // Text
         this.url.textMesh = this.url.inner.children.find(_child => _child.name.startsWith('text'))
         this.url.panel = this.url.inner.children.find(_child => _child.name.startsWith('panel'))
         this.url.textCanvas = new TextCanvas(
             this.texts.fontFamily,
             this.texts.fontWeight,
-            this.texts.fontSizeMultiplier * 0.23,
+            this.texts.fontSizeMultiplier * 0.26,
             4,
             0.2,
             this.texts.density,
@@ -984,6 +1024,9 @@ export class ProjectsArea extends Area
         // Intersect
         const intersect = this.references.items.get('intersectUrl')[0]
         intersect.visible = false
+        this.url.group.add(intersect)
+        intersect.position.set(0, 0, 0.12)
+        intersect.scale.set(2.2, 0.45, 0.6)
  
         this.url.intersect = this.game.rayCursor.addIntersect({
             active: false,
@@ -1002,6 +1045,26 @@ export class ProjectsArea extends Area
             }
         })
 
+        this.url.setLabel = () =>
+        {
+            const link = this.navigation?.current?.url
+
+            if(!link)
+            {
+                this.url.group.visible = false
+                return
+            }
+
+            this.url.group.visible = true
+            this.url.textCanvas.updateText('visit site')
+            this.url.intersect.active = this.state === ProjectsArea.STATE_OPEN || this.state === ProjectsArea.STATE_OPENING
+
+            const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
+            this.url.panel.scale.x = ratio + 0.35
+
+            intersect.getWorldPosition(this.url.intersect.position)
+        }
+
         // Update
         this.url.update = (direction) =>
         {
@@ -1019,10 +1082,7 @@ export class ProjectsArea extends Area
 
                 gsap.to(this.url.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 1, delay: 0, ease: 'back.out(2)', overwrite: true })
 
-                this.url.textCanvas.updateText(this.navigation.current.url.replace(/https?:\/\//, ''))
-
-                const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
-                this.url.panel.scale.x = ratio + 0.2
+                this.url.setLabel()
 
             } })
         }
@@ -1030,10 +1090,10 @@ export class ProjectsArea extends Area
         // Open
         this.url.open = () =>
         {
-            if(this.navigation.current.url)
-            {
-                window.open(this.navigation.current.url, '_blank')
-            }
+            const link = this.navigation?.current?.url
+
+            if(link)
+                window.open(link, '_blank')
         }
     }
 
@@ -1340,7 +1400,13 @@ export class ProjectsArea extends Area
         this.pagination.previousIntersect.active = true
         this.pagination.nextIntersect.active = true
         this.url.intersect.active = true
+        this.url.setLabel()
 
+        // Info signs + link label
+        this.attributes.status = 'hidden'
+        this.attributes.update()
+        this.url.status = 'hidden'
+        this.url.update(ProjectsArea.DIRECTION_NEXT)
         // Deactivate physical vehicle
         this.game.physicalVehicle.deactivate()
 
@@ -1490,6 +1556,7 @@ export class ProjectsArea extends Area
         this.adjacents.update()
         this.title.update(direction)
         this.url.update(direction)
+        this.url.setLabel()
         this.distinctions.update()
 
         // Change image

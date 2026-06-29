@@ -10,7 +10,21 @@ export class Quality
         this.events = new Events()
 
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-        this.level = isMobile ? 1 : 0 // 0 = highest quality
+        const envQuality = import.meta.env.VITE_QUALITY
+
+        if(envQuality === 'low')
+            this.level = 1
+        else if(envQuality === 'high')
+            this.level = 0
+        else
+            this.level = isMobile ? 1 : 0
+
+        this.applyPerformanceSettings()
+
+        this.events.on('change', () =>
+        {
+            this.applyPerformanceSettings()
+        })
 
         // Debug
         if(this.game.debug.active)
@@ -35,6 +49,28 @@ export class Quality
                 'change'
             )
         }
+    }
+
+    applyPerformanceSettings()
+    {
+        const high = this.level === 0
+
+        if(this.game.viewport)
+        {
+            this.game.viewport.setPixelRatioMax(high ? 1.5 : 1.25)
+
+            if(this.game.rendering?.renderer)
+                this.game.rendering.resize()
+        }
+
+        if(this.game.lighting)
+            this.game.lighting.setShadowQuality(high)
+
+        if(this.game.rendering?.renderer)
+            this.game.rendering.renderer.shadowMap.enabled = high
+
+        if(this.game.lighting?.light)
+            this.game.lighting.light.castShadow = high
     }
 
     changeLevel(level = 0)

@@ -3,6 +3,7 @@ import { Events } from '../../Events.js'
 import { Game } from '../../Game.js'
 import { References } from '../../References.js'
 import { circleIntersectsPolygon } from '../../utilities/maths.js'
+import { applyStatueReplacements, getAreaNameFromModel } from '../StatueReplacements.js'
 
 export class Area
 {
@@ -16,6 +17,7 @@ export class Area
         this.references = new References()
 
         this.setObjects()
+        applyStatueReplacements(this, getAreaNameFromModel(model))
         this.setBounding()
         this.setFrustum()
 

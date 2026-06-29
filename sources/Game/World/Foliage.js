@@ -10,7 +10,7 @@ const rng = new alea('foliage')
 
 export class Foliage
 {
-    constructor(references, colorANode, colorBNode, seeThrough = false)
+    constructor(references, colorANode, colorBNode, seeThrough = false, planeCount = 80)
     {
         this.game = Game.getInstance()
 
@@ -19,6 +19,7 @@ export class Foliage
         this.colorBNode = colorBNode
         this.seeThrough = seeThrough
         this.seeThroughMultiplier = 1
+        this.planeCount = planeCount
 
         this.setGeometry()
         this.setMaterial()
@@ -33,10 +34,9 @@ export class Foliage
 
     setGeometry()
     {
-        const count = 80
         const planes = []
 
-        for(let i = 0; i < count; i++)
+        for(let i = 0; i < this.planeCount; i++)
         {
             const plane = new THREE.PlaneGeometry(0.8, 0.8)
 

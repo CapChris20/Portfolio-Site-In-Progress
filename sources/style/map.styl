@@ -3,7 +3,7 @@
     position absolute
     right 0
     top 70px
-    width 44px
+    width auto
     height 44px
     z-index 9
     -webkit-user-select none
@@ -25,18 +25,22 @@
             transform translateX(-4px)
 
             &::after
-                opacity 0.8
+                opacity  0.8
 
             .icon-container
                 opacity 1
 
     .button-inner
+        display flex
+        align-items center
         position absolute
         top 0
-        left 0
-        width calc(100% + var(--hover-translate))
+        right 0
+        width auto
+        min-width calc(44px + var(--hover-translate))
         height 100%
-        background radial-gradient(ellipse at top right, #C21515, #46123B)
+        padding-left 12px
+        background radial-gradient(ellipse at top right, #3d1a5c, #14002a)
         transition transform 0.15s 0.15s
 
         html.input-filter-menu &,
@@ -59,15 +63,26 @@
             opacity 0.35
             transition opacity 0.15s
 
+        .button-label
+            position relative
+            z-index 1
+            padding-right 6px
+            font-size 0.72rem
+            font-weight 900
+            letter-spacing 0.1em
+            text-transform uppercase
+            color #ffffff
+            white-space nowrap
+            pointer-events none
+
         .icon-container
             display flex
-            position absolute
+            position relative
+            flex-shrink 0
             align-items center
             justify-content center
-            top 0
-            right 0
-            bottom 0
-            left 3px
+            width 44px
+            height 44px
 
             // .icon
             //     position relative
@@ -81,7 +96,7 @@
     max-width 100vmin
     max-height 100vmin
     aspect-ratio 1 / 1
-    background radial-gradient(ellipse at top left, #251f2b, #1d1721)
+    background radial-gradient(ellipse at top left, #2d004f, #14002a)
     -webkit-user-select none
     -moz-user-select none
     user-select none
@@ -134,7 +149,7 @@
             right 0
             width 100%
             height calc(100% + var(--hover-translate))
-            background radial-gradient(ellipse at top right, #C21515, #46123B)
+            background radial-gradient(ellipse at top right, #3d1a5c, #14002a)
             transition transform 0.15s
 
             &::after
@@ -290,9 +305,9 @@
             width var(--size)
             height var(--size)
             background #ffffff
-            border 4px solid #251f2b
+            border 4px solid #2d004f
             transform rotate(45deg)
-            box-shadow 0 0 4px #251f2b77
+            box-shadow 0 0 4px #9333ea77
 
             @media only screen and (max-width 520px)
                 --size 12px

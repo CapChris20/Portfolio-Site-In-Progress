@@ -19,14 +19,14 @@ export default
     [
         'projects',
         'But can you fix the wifi?',
-        'Check every project in the <strong>projects</strong> area.',
+        'Check every skill category in the <strong>skills</strong> area.',
         projectsData.length,
         true // Unique
     ],
     [
         'lab',
         'I\'m a bit of a scientist myself',
-        'Check every project in the <strong>lab</strong> area.',
+        'Check every project in the <strong>projects</strong> area.',
         labData.length,
         true // Unique
     ],

@@ -3,15 +3,18 @@ import { color, uniform } from 'three/tsl'
 import { Foliage } from './Foliage.js'
 import { Game } from '../Game.js'
 
+import { filterReferencesNearEntranceStatue } from './WorldProps.js'
+
 export class Bushes
 {
     constructor()
     {
         this.game = Game.getInstance()
 
-        this.colorANode = uniform(color('#b4b536'))
-        this.colorBNode = uniform(color('#d8cf3b'))
-        this.foliage = new Foliage(this.game.resources.bushesReferences.scene.children, this.colorANode, this.colorBNode)
+        this.colorANode = uniform(color('#ff8500'))
+        this.colorBNode = uniform(color('#9333ea'))
+        const references = filterReferencesNearEntranceStatue(this.game.resources.bushesReferences.scene.children)
+        this.foliage = new Foliage(references, this.colorANode, this.colorBNode)
 
         // Debug
         if(this.game.debug.active)

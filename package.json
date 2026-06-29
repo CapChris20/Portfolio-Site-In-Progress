@@ -1,5 +1,5 @@
 {
-  "name": "bruno-simon-folio-2025",
+  "name": "chris-shina-folio-2025",
   "version": "0.0.0",
   "main": "index.js",
   "type": "module",
@@ -7,7 +7,8 @@
     "dev": "vite --mode development",
     "build": "vite build --mode production",
     "preview": "vite preview",
-    "compress": "node scripts/compress.js static/"
+    "compress": "node scripts/compress.js static/",
+    "generate-skills": "node scripts/generateSkillImages.js"
   },
   "author": "",
   "license": "ISC",

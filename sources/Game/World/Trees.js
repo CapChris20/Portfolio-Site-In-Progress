@@ -5,7 +5,7 @@ import { color, uniform } from 'three/tsl'
 
 export class Trees
 {
-    constructor(name, visual, references, colorA, colorB)
+    constructor(name, visual, references, colorA, colorB, foliagePlaneCount = 48)
     {
         this.game = Game.getInstance()
 
@@ -22,6 +22,7 @@ export class Trees
         this.references = references
         this.colorA = colorA
         this.colorB = colorB
+        this.foliagePlaneCount = foliagePlaneCount
 
         this.setModelParts()
         this.setBodies()
@@ -37,13 +38,10 @@ export class Trees
         
         this.visual.traverse((_child) =>
         {
-            if(_child.isMesh)
-            {
-                if(_child.name.startsWith('treeLeaves'))
-                    this.modelParts.leaves.push(_child)
-                else if(_child.name.startsWith('treeBody'))
-                    this.modelParts.body = _child
-            }
+            if(_child.name.startsWith('treeLeaves'))
+                this.modelParts.leaves.push(_child)
+            else if(_child.name.startsWith('treeBody') && _child.isMesh)
+                this.modelParts.body = _child
         })
     }
 
@@ -83,7 +81,7 @@ export class Trees
 
         const leavesColorANode = uniform(color(this.colorA))
         const leavesColorBNode = uniform(color(this.colorB))
-        this.leaves = new Foliage(references, leavesColorANode, leavesColorBNode, true)
+        this.leaves = new Foliage(references, leavesColorANode, leavesColorBNode, true, this.foliagePlaneCount)
 
         // Debug
         if(this.game.debug.active)

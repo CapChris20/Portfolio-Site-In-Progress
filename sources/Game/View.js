@@ -19,11 +19,15 @@ export class View
     static MODE_DEFAULT = 1
     static MODE_FREE = 2
 
+    static CAMERA_CHASE = 0
+    static CAMERA_AERIAL = 1
+
     constructor(idealRatio = 1920 / 1080)
     {
         this.game = Game.getInstance()
         
         this.mode = View.MODE_DEFAULT
+        this.cameraPreset = View.CAMERA_CHASE
         this.position = new THREE.Vector3()
         this.delta = new THREE.Vector3()
         this.idealRatio = idealRatio
@@ -62,6 +66,8 @@ export class View
         this.setCinematic()
         this.setSpeedLines()
         this.setMapControls()
+        this.setCameraPresets()
+        this.setOrbitControls()
 
         this.game.ticker.events.on('tick', () =>
         {
@@ -343,6 +349,12 @@ export class View
         this.spherical.offset = new THREE.Vector3()
         this.spherical.offset.setFromSphericalCoords(this.spherical.radius.current, this.spherical.phi, this.spherical.theta)
 
+        this.spherical.defaults = {
+            phi: this.spherical.phi,
+            theta: this.spherical.theta,
+            radiusMax: this.spherical.radius.edges.max,
+        }
+
         if(this.game.debug.active)
         {
             const sphericalDebugPanel = this.debugPanel.addFolder({
@@ -581,6 +593,132 @@ export class View
         this.optimalArea.update()
     }
 
+    setCameraPresets()
+    {
+        this.cameraFov = {}
+        this.cameraFov.chase = 25
+        this.cameraFov.aerial = 35
+        this.cameraNear = {}
+        this.cameraNear.chase = 0.1
+        this.cameraNear.aerial = 0.1
+
+        if(this.game.debug.active)
+        {
+            const presetPanel = this.debugPanel.addFolder({
+                title: 'Camera preset',
+                expanded: false,
+            })
+            presetPanel.addBinding(this, 'cameraPreset', {
+                options: {
+                    chase: View.CAMERA_CHASE,
+                    aerial: View.CAMERA_AERIAL,
+                },
+            }).on('change', () =>
+            {
+                this.applyCameraPreset()
+            })
+        }
+    }
+
+    applyCameraPreset()
+    {
+        this.optimalArea.needsUpdate = true
+
+        if(this.cameraPreset === View.CAMERA_CHASE)
+        {
+            this.spherical.phi = this.spherical.defaults.phi
+            this.spherical.radius.edges.max = this.spherical.defaults.radiusMax
+            this.zoom.baseRatio = 0.6
+        }
+        else if(this.cameraPreset === View.CAMERA_AERIAL)
+        {
+            this.spherical.phi = Math.PI * 0.44
+            this.spherical.radius.edges.max = 90
+            this.zoom.baseRatio = 0
+        }
+
+        const targetFov = this.cameraPreset === View.CAMERA_AERIAL
+            ? this.cameraFov.aerial
+            : this.cameraFov.chase
+
+        const targetNear = this.cameraPreset === View.CAMERA_AERIAL
+            ? this.cameraNear.aerial
+            : this.cameraNear.chase
+
+        for(const cam of [ this.camera, this.defaultCamera, this.freeCamera ])
+        {
+            cam.fov = targetFov
+            cam.near = targetNear
+            cam.updateProjectionMatrix()
+        }
+    }
+
+    setOrbitControls()
+    {
+        this.orbitPointerActive = false
+
+        this.game.domElement.addEventListener('mousedown', (event) =>
+        {
+            if(event.button === 2)
+                this.orbitPointerActive = true
+        })
+
+        addEventListener('mouseup', (event) =>
+        {
+            if(event.button === 2)
+                this.orbitPointerActive = false
+        })
+    }
+
+    applyOrbitDelta(deltaTheta, deltaPhi)
+    {
+        this.spherical.theta -= deltaTheta
+        this.spherical.phi = clamp(this.spherical.phi - deltaPhi, 0.08, Math.PI * 0.49)
+        this.optimalArea.needsUpdate = true
+    }
+
+    updateOrbitInput()
+    {
+        if(this.mode !== View.MODE_DEFAULT || this.cinematic.active)
+            return
+
+        const delta = this.game.ticker.delta
+
+        if(this.game.inputs.gamepad.joysticks.right.active)
+        {
+            if(this.focusPoint.isTracking)
+            {
+                const stick = this.game.inputs.gamepad.joysticks.right
+                this.applyOrbitDelta(stick.x * 2.5 * delta, stick.y * 2.5 * delta)
+            }
+            else
+            {
+                const mapMovement = new THREE.Vector2(this.game.inputs.gamepad.joysticks.right.x, this.game.inputs.gamepad.joysticks.right.y)
+                mapMovement.rotateAround(new THREE.Vector2(), -this.spherical.theta)
+                mapMovement.multiplyScalar(20 * delta)
+
+                this.focusPoint.position.x += mapMovement.x
+                this.focusPoint.position.z += mapMovement.y
+            }
+
+            return
+        }
+
+        if(this.orbitPointerActive && this.focusPoint.isTracking && this.game.inputs.pointer.hasMoved)
+            this.applyPointerLook()
+    }
+
+    applyPointerLook()
+    {
+        const smallestSide = Math.min(this.game.viewport.width, this.game.viewport.height)
+        const sensitivity = 4 / smallestSide
+
+        this.applyOrbitDelta(
+            this.game.inputs.pointer.delta.x * sensitivity,
+            this.game.inputs.pointer.delta.y * sensitivity
+        )
+    }
+
     setMapControls()
     {
         this.game.inputs.addActions([
@@ -619,18 +757,7 @@ export class View
 
     update()
     {
-        // Gamepad Joystick map controls
-        if(this.mode === View.MODE_DEFAULT && this.game.inputs.gamepad.joysticks.right.active && !this.cinematic.active)
-        {
-            this.focusPoint.isTracking = false
-
-            const mapMovement = new THREE.Vector2(this.game.inputs.gamepad.joysticks.right.x, this.game.inputs.gamepad.joysticks.right.y)
-            mapMovement.rotateAround(new THREE.Vector2(), -this.spherical.theta)
-            mapMovement.multiplyScalar(20 * this.game.ticker.delta)
-
-            this.focusPoint.position.x += mapMovement.x
-            this.focusPoint.position.z += mapMovement.y
-        }
+        this.updateOrbitInput()
         
         // Focus point
         if(this.focusPoint.isTracking)
@@ -702,27 +829,33 @@ export class View
             this.zoom.smoothedRatio = lerp(this.zoom.smoothedRatio, this.zoom.ratio, this.game.ticker.delta * 10)
         }
 
-        // Radius
-        const radiusMax = this.spherical.radius.edges.max + this.ratioOverflow * this.spherical.radius.nonIdealRatioOffset
-        this.spherical.radius.current = lerp(this.spherical.radius.edges.min, radiusMax, 1 - this.zoom.smoothedRatio)
-        this.spherical.offset.setFromSphericalCoords(this.spherical.radius.current, this.spherical.phi, this.spherical.theta)
+        if(this.mode === View.MODE_DEFAULT)
+        {
+            // Radius
+            const radiusMax = this.spherical.radius.edges.max + this.ratioOverflow * this.spherical.radius.nonIdealRatioOffset
+            this.spherical.radius.current = lerp(this.spherical.radius.edges.min, radiusMax, 1 - this.zoom.smoothedRatio)
+            this.spherical.offset.setFromSphericalCoords(this.spherical.radius.current, this.spherical.phi, this.spherical.theta)
 
-        // Position
-        this.position.copy(this.focusPoint.smoothedPosition).add(this.spherical.offset)
+            // Position
+            this.position.copy(this.focusPoint.smoothedPosition).add(this.spherical.offset)
 
-        // Default camera position
-        this.delta = this.position.clone().sub(this.defaultCamera.position)
-        this.defaultCamera.position.copy(this.position)
+            // Default camera position
+            this.delta = this.position.clone().sub(this.defaultCamera.position)
+            this.defaultCamera.position.copy(this.position)
 
-        // Default camera look at and roll
-        this.defaultCamera.rotation.set(0, 0, 0)
-        this.defaultCamera.lookAt(this.focusPoint.smoothedPosition)
+            // Default camera look at and roll
+            this.defaultCamera.rotation.set(0, 0, 0)
+            this.defaultCamera.lookAt(this.focusPoint.smoothedPosition)
 
-        this.roll.velocity = - this.roll.value * this.roll.pullStrength * this.game.ticker.deltaScaled
-        this.roll.speed += this.roll.velocity
-        this.roll.value += this.roll.speed * this.game.ticker.deltaScaled
-        this.roll.speed *= 1 - this.roll.damping * this.game.ticker.deltaScaled
-        this.defaultCamera.rotation.z += this.roll.value
+            if(this.cameraPreset === View.CAMERA_CHASE)
+            {
+                this.roll.velocity = - this.roll.value * this.roll.pullStrength * this.game.ticker.deltaScaled
+                this.roll.speed += this.roll.velocity
+                this.roll.value += this.roll.speed * this.game.ticker.deltaScaled
+                this.roll.speed *= 1 - this.roll.damping * this.game.ticker.deltaScaled
+                this.defaultCamera.rotation.z += this.roll.value
+            }
+        }
 
         // Cinematic
         if(this.cinematic.progress > 0)

@@ -20,12 +20,12 @@ export class Lighting
         this.colorUniform = uniform(color('#ffffff'))
         this.intensityUniform = uniform(1)
         this.count = 1
-        this.mapSize = this.game.quality.level === 0 ? 2048 : 512
+        this.mapSize = this.game.quality.level === 0 ? 1024 : 512
         this.shadowAmplitude = this.game.view.optimalArea.radius
         this.depth = this.game.view.optimalArea.radius * 2
         this.shadowBias = -0.001
         this.shadowNormalBias = 0.1
-        this.shadowRadius = this.game.quality.level === 0 ? 3 : 2
+        this.shadowRadius = this.game.quality.level === 0 ? 2 : 2
 
         if(this.game.debug.active)
         {
@@ -109,7 +109,7 @@ export class Lighting
     {
         this.light = new THREE.DirectionalLight(0xffffff, 5)
         this.light.position.setFromSpherical(this.spherical)
-        this.light.castShadow = true
+        this.light.castShadow = this.game.quality.level === 0
 
         this.game.scene.add(this.light)
         this.game.scene.add(this.light.target)
@@ -150,6 +150,18 @@ export class Lighting
         }
     }
 
+    setShadowQuality(high = this.game.quality.level === 0)
+    {
+        this.mapSize = high ? 1024 : 512
+        this.shadowRadius = 2
+
+        if(this.light?.shadow)
+        {
+            this.light.shadow.mapSize.set(this.mapSize, this.mapSize)
+            this.light.shadow.radius = this.shadowRadius
+        }
+    }
+
     updateShadow()
     {
         this.light.shadow.camera.top = this.shadowAmplitude
@@ -163,13 +175,9 @@ export class Lighting
         this.light.shadow.radius = this.shadowRadius
 
         this.light.shadow.camera.updateProjectionMatrix()
-        this.light.shadow.mapSize.set(this.mapSize, this.mapSize)
 
-        this.game.quality.events.on('change', () =>
-        {
-            this.mapSize = this.game.quality.level === 0 ? 2048 : 512
+        if(this.light.shadow)
             this.light.shadow.mapSize.set(this.mapSize, this.mapSize)
-        })
     }
 
     updateCoordinates()
