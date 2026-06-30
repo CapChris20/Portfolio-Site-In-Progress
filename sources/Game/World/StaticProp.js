@@ -60,57 +60,79 @@ export class StaticProp
 
         if(this.options.physical !== false)
             this.setPhysical()
-
         else
             this.game.scene.add(this.group)
     }
 
     setPhysical()
     {
-        const scale = this.options.targetLength / 5.5
-
-        // Same cuboid-node pattern as areas.glb props — parsed by Objects.getFromModel()
-        const base = new THREE.Object3D()
-        base.name = 'cuboid'
-        base.scale.set(3.4 * scale, 1.0 * scale, 3.4 * scale)
-        base.position.y = 0.5 * scale
-        this.group.add(base)
-
-        const body = new THREE.Object3D()
-        body.name = 'cuboid.001'
-        body.scale.set(2.6 * scale, 6.0 * scale, 2.2 * scale)
-        body.position.y = 3.4 * scale
-        this.group.add(body)
-
-        this.object = this.game.objects.addFromModel(
-            this.group,
-            {
-                castShadow: this.options.castShadow,
-                receiveShadow: this.options.receiveShadow,
-                updateMaterials: false,
-            },
-            {
-                type: 'fixed',
-                position: new THREE.Vector3(
-                    this.options.position.x,
-                    0,
-                    this.options.position.z,
-                ),
-                rotation: this.group.quaternion.clone(),
-                friction: 0.9,
-                restitution: 0.02,
-                sleeping: true,
-                contactThreshold: 2,
-                onCollision: (force, position) =>
-                {
-                    this.game.audio.groups.get('hitDefault').playRandomNext(force, position)
-                },
-            },
-        )
+        attachStatuePhysics(this.group, this.options.targetLength, {
+            position: this.options.position,
+            rotation: this.group.quaternion,
+            castShadow: this.options.castShadow,
+            receiveShadow: this.options.receiveShadow,
+        })
     }
 
     destroy()
     {
         this.group.removeFromParent()
     }
+}
+
+/**
+ * Fixed cuboid colliders matching areas.glb props (walls, altar, cones).
+ * Use for custom statue GLBs that are added as plain scene visuals.
+ */
+export function attachStatuePhysics(group, targetLength, options = {})
+{
+    const game = Game.getInstance()
+
+    if(!/physical/i.test(group.name))
+        group.name = `${group.name}PhysicalFixed`
+
+    for(const child of [...group.children])
+    {
+        if(/^cuboid/i.test(child.name))
+            group.remove(child)
+    }
+
+    const scale = targetLength / 5.5
+
+    const base = new THREE.Object3D()
+    base.name = 'cuboid'
+    base.scale.set(3.4 * scale, 1.0 * scale, 3.4 * scale)
+    base.position.y = 0.5 * scale
+    group.add(base)
+
+    const body = new THREE.Object3D()
+    body.name = 'cuboid.001'
+    body.scale.set(2.6 * scale, 6.0 * scale, 2.2 * scale)
+    body.position.y = 3.4 * scale
+    group.add(body)
+
+    const position = options.position ?? group.position
+
+    return game.objects.addFromModel(
+        group,
+        {
+            castShadow: options.castShadow ?? false,
+            receiveShadow: options.receiveShadow ?? true,
+            updateMaterials: false,
+            parent: group.parent ? null : game.scene,
+        },
+        {
+            type: 'fixed',
+            position: new THREE.Vector3(position.x, 0, position.z),
+            rotation: (options.rotation ?? group.quaternion).clone(),
+            friction: 0.9,
+            restitution: 0.02,
+            sleeping: true,
+            contactThreshold: 2,
+            onCollision: (force, collisionPosition) =>
+            {
+                game.audio.groups.get('hitDefault').playRandomNext(force, collisionPosition)
+            },
+        },
+    )
 }

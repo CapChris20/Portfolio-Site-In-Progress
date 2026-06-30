@@ -4,6 +4,7 @@ import { InteractivePoints } from '../../InteractivePoints.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
 import { Area } from './Area.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
+import { attachStatuePhysics } from '../StaticProp.js'
 import { alea } from 'seedrandom'
 
 const ACHIEVEMENTS_PILLAR_SKIP = /^Cube\.110$/
@@ -288,6 +289,11 @@ export class AchievementsArea extends Area
         group.add(visual)
         this.game.scene.add(group)
         this.objects.hideable.push(group)
+
+        attachStatuePhysics(group, ACHIEVEMENTS_KRATOS_LENGTH, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
 
         this.kratos = group
     }

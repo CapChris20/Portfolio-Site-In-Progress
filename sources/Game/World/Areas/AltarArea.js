@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import { alea } from 'seedrandom'
 import { Area } from './Area.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
+import { attachStatuePhysics } from '../StaticProp.js'
 
 const ALTAR_PLATFORM_SKIP = /^Cube\.173$|^physicalFixed\.005$/
 const ALTAR_KNUCKLES_LENGTH = 5.5
@@ -165,6 +166,11 @@ export class AltarArea extends Area
         group.add(visual)
         this.game.scene.add(group)
         this.objects.hideable.push(group)
+
+        attachStatuePhysics(group, ALTAR_KNUCKLES_LENGTH, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
 
         this.altarKnuckles = group
     }

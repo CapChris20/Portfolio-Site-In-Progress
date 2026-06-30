@@ -70,7 +70,7 @@ function walk(nodeIndex, nodes, parent = { x: 0, y: 0, z: 0, area: null })
 
     if(n.name && !n.name.startsWith('ref') && !/Physical/i.test(n.name))
     {
-        for(const areaName of [ 'social', 'landing', 'projects', 'lab', 'career', 'bowling', 'cookie', 'altar', 'circuit', 'toilet', 'timeMachine', 'achievements', 'behindTheScene' ])
+        for(const areaName of [ 'social', 'landing', 'projects', 'lab', 'career', 'bowling', 'cookie', 'altar', 'circuit', 'toilet', 'achievements', 'behindTheScene' ])
         {
             if(n.name === areaName || n.name.startsWith(areaName))
                 area = areaName

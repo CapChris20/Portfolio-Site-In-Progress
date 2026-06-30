@@ -1,8 +1,8 @@
 import * as THREE from 'three/webgpu'
 import { Game } from '../Game.js'
 import { Foliage } from './Foliage.js'
-import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
-import { color, texture, uniform, uv } from 'three/tsl'
+import { attachStatuePhysics } from './StaticProp.js'
+import { color, uniform } from 'three/tsl'
 
 export class Trees
 {
@@ -34,56 +34,47 @@ export class Trees
     setModelParts()
     {
         this.modelParts = {}
+        this.modelParts.meshes = []
         this.modelParts.leaves = []
-        this.modelParts.body = null
-        
+
+        this.visual.updateMatrixWorld(true)
+
         this.visual.traverse((_child) =>
         {
-            if(_child.name.startsWith('treeLeaves'))
+            if(_child.name.startsWith('treeLeaves') && !_child.isMesh)
                 this.modelParts.leaves.push(_child)
-            else if(_child.name.startsWith('treeBody') && _child.isMesh)
-                this.modelParts.body = _child
+            else if(_child.isMesh)
+                this.modelParts.meshes.push(_child)
         })
+
+        // Legacy palmTreesVisual.glb fallback
+        if(!this.modelParts.meshes.length)
+        {
+            this.visual.traverse((_child) =>
+            {
+                if(_child.name.startsWith('treeBody') && _child.isMesh)
+                    this.modelParts.meshes.push(_child)
+            })
+        }
     }
 
-    createBodyMaterial(sourceMaterial)
+    prepareTreeMaterial(material)
     {
-        if(sourceMaterial?.map)
-        {
-            sourceMaterial.map.colorSpace = THREE.SRGBColorSpace
-
-            const material = new MeshDefaultMaterial({
-                colorNode: texture(sourceMaterial.map, uv()).rgb,
-                hasReveal: false,
-                hasWater: false,
-                side: THREE.DoubleSide,
-            })
-            material.map = sourceMaterial.map
-            material.name = 'treeBodyInstanced'
-
+        if(!material?.isMeshLambertNodeMaterial)
             return material
-        }
 
-        this.game.materials.applyObjectMaterials(this.modelParts.body, { useCache: false })
-
-        const material = this.modelParts.body.material
-
-        if(material?.isMeshLambertNodeMaterial)
-        {
-            material.hasReveal = false
-            material.hasWater = false
-            material.side = THREE.DoubleSide
-            material.name = 'treeBodyInstanced'
-        }
+        material.hasReveal = false
+        material.hasWater = false
+        material.side = THREE.DoubleSide
 
         return material
     }
 
     setBodies()
     {
-        if(!this.modelParts.body)
+        if(!this.modelParts.meshes.length)
         {
-            console.warn('Trees: could not find treeBody mesh in visual')
+            console.warn('Trees: could not find mesh(es) in visual')
             return
         }
 
@@ -93,35 +84,56 @@ export class Trees
             return
         }
 
-        const geometry = this.modelParts.body.geometry
-        const material = this.createBodyMaterial(this.modelParts.body.material)
+        this.bodies = []
 
-        this.bodies = new THREE.InstancedMesh(geometry, material, this.references.length)
-        this.bodies.name = 'treeBodies'
-        this.bodies.instanceMatrix.setUsage(THREE.StaticDrawUsage)
-        this.bodies.castShadow = true
-        this.bodies.receiveShadow = true
-        this.bodies.frustumCulled = false
-        
-        let i = 0
-        for(const treeReference of this.references)
+        this.visual.updateMatrixWorld(true)
+
+        for(const sourceMesh of this.modelParts.meshes)
         {
-            treeReference.updateMatrix()
-            this.bodies.setMatrixAt(i, treeReference.matrix)
-            i++
-        }
+            this.game.materials.updateObject(sourceMesh)
 
-        this.bodies.instanceMatrix.needsUpdate = true
-        this.game.scene.add(this.bodies)
+            const materials = Array.isArray(sourceMesh.material) ? sourceMesh.material : [ sourceMesh.material ]
+            const preparedMaterials = materials.map((material) => this.prepareTreeMaterial(material))
+
+            const body = new THREE.InstancedMesh(
+                sourceMesh.geometry,
+                preparedMaterials.length > 1 ? preparedMaterials : preparedMaterials[0],
+                this.references.length,
+            )
+
+            body.name = `treeBodies_${sourceMesh.name}`
+            body.instanceMatrix.setUsage(THREE.StaticDrawUsage)
+            body.castShadow = true
+            body.receiveShadow = true
+            body.frustumCulled = false
+
+            sourceMesh.updateMatrixWorld(true)
+            const meshMatrix = sourceMesh.matrixWorld.clone()
+
+            let i = 0
+
+            for(const treeReference of this.references)
+            {
+                treeReference.updateMatrixWorld(true)
+                const instanceMatrix = meshMatrix.clone().premultiply(treeReference.matrixWorld)
+                body.setMatrixAt(i, instanceMatrix)
+                i++
+            }
+
+            body.instanceMatrix.needsUpdate = true
+            this.game.scene.add(body)
+            this.bodies.push(body)
+        }
     }
 
     setLeaves()
     {
-        if(!this.modelParts.leaves.length || !this.references.length)
+        // Full GLB palms (trunk + leaf meshes) skip billboard foliage.
+        if(this.modelParts.meshes.length > 1 || !this.modelParts.leaves.length || !this.references.length)
             return
 
         const references = []
-        
+
         for(const treeReference of this.references)
         {
             treeReference.updateMatrixWorld(true)
@@ -155,28 +167,17 @@ export class Trees
 
     setPhysical()
     {
-        if(this.game.quality.level === 1)
-            return
+        const colliderLength = 5.5
 
         for(const treeReference of this.references)
         {
-            const position = treeReference.position.clone().add(new THREE.Vector3(0, 2.5, 0))
+            const anchor = new THREE.Group()
+            anchor.name = 'palmTreePhysicalFixed'
 
-            this.game.objects.add(
-                null,
-                {
-                    type: 'fixed',
-                    position,
-                    rotation: treeReference.quaternion,
-                    friction: 0.7,
-                    sleeping: true,
-                    colliders: [ { shape: 'cylinder', parameters: [ 2.5, 0.15 ], category: 'object' } ],
-                    onCollision: (force, position) =>
-                    {
-                        this.game.audio.groups.get('hitDefault').playRandomNext(force, position)
-                    }
-                }
-            )
+            attachStatuePhysics(anchor, colliderLength, {
+                position: new THREE.Vector3(treeReference.position.x, 0, treeReference.position.z),
+                rotation: treeReference.quaternion.clone(),
+            })
         }
     }
 }

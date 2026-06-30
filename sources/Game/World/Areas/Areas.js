@@ -11,7 +11,6 @@ import { BowlingArea } from './BowlingArea.js'
 import { CircuitArea } from './CircuitArea.js'
 import { BehindTheSceneArea } from './BehindTheSceneArea.js'
 import { AchievementsArea } from './AchievementsArea.js'
-import { TimeMachineArea } from './TimeMachineArea.js'
 import { EasterArea } from './EasterArea.js'
 
 export class Areas
@@ -33,7 +32,6 @@ export class Areas
             [ 'projects', ProjectsArea ],
             [ 'social', SocialArea ],
             [ 'toilet', ToiletArea ],
-            [ 'timeMachine', TimeMachineArea ],
         ]
 
         const model = [...this.game.resources.areasModel.scene.children]

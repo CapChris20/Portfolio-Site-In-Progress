@@ -15,8 +15,8 @@ const sourcePath = process.argv[2] || joinPath(rootDir, 'static/vehicle/lightnin
 const outputPath = process.argv[3] || joinPath(rootDir, 'static/vehicle/lightningMcqueen.glb')
 const backupPath = outputPath.replace(/\.glb$/, '.source.glb')
 
-const MAX_TEXTURE_SIZE = 1024
-const SIMPLIFY_RATIO = 0.25
+const MAX_TEXTURE_SIZE = 2048
+const SIMPLIFY_RATIO = 0.5
 
 await mkdir(dirname(outputPath), { recursive: true })
 

@@ -52,7 +52,6 @@ export class Map
             { name: 'Bowling', respawnName: 'bowling', offset: { x: -0.08, y: 0.03 } },
             { name: 'Circuit', respawnName: 'circuit', offset: { x: -0.08, y: -0.05 } },
             { name: 'Cookie', respawnName: 'cookie', offset: { x: -0.02, y: -0.01 } },
-            { name: 'Time Machine', respawnName: 'timeMachine', offset: { x: 0, y: 0 } },
         ]
 
         for(const item of this.locations.items)

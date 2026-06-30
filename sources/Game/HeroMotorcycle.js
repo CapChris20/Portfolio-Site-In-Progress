@@ -124,7 +124,7 @@ export class HeroMotorcycle
 
         if(this.model)
         {
-            this.model.rotation.y = this.baseRotation + elapsed * 0.22
+            this.model.rotation.y = this.baseRotation + elapsed * 0.34
             this.model.position.y = Math.sin(elapsed * 0.9) * 0.04
         }
 

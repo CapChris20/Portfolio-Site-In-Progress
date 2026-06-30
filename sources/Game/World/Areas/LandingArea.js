@@ -9,6 +9,7 @@ import { Area } from './Area.js'
 import gsap from 'gsap'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
+import { attachStatuePhysics } from '../StaticProp.js'
 
 const LANDING_SPAWN = new THREE.Vector3(39.52898025512695, 0, 37.82522964477539)
 const _gameboyLookTarget = new THREE.Vector3()
@@ -338,6 +339,11 @@ export class LandingArea extends Area
         this.game.materials.applyObjectMaterials(visual, { useCache: false })
         group.add(visual)
         this.game.scene.add(group)
+
+        attachStatuePhysics(group, 4.5, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
 
         this.kioskSonic = group
     }

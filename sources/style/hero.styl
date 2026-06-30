@@ -34,29 +34,6 @@ $hero-deep = #14002a
             transform translateY(-18px)
             opacity 0
 
-        .hero-letterbox--top
-            transform translateY(-100%)
-
-        .hero-letterbox--bottom
-            transform translateY(100%)
-
-// Cinematic letterbox bars
-.hero-letterbox
-    position absolute
-    left 0
-    right 0
-    height clamp(36px, 9vh, 72px)
-    background #000000
-    z-index 4
-    pointer-events none
-    transition transform 0.75s cubic-bezier(0.65, 0, 0.35, 1)
-
-    &--top
-        top 0
-
-    &--bottom
-        bottom 0
-
 .hero-backdrop
     position absolute
     inset 0

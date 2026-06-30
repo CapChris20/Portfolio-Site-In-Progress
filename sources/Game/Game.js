@@ -113,7 +113,7 @@ export class Game
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
         this.vehicleMode = import.meta.env.VITE_VEHICLE || 'custom'
 
-        const cb = '?cb=89'
+        const cb = '?cb=99'
         const careerTextureFormat = 'texture'
         this.resources = await this.resourcesLoader.load([
             [ 'respawnsReferencesModel',    `respawns/respawnsReferences${compressedModelSuffix}.glb${cb}`, 'gltf' ],
@@ -151,7 +151,7 @@ export class Game
                 [ 'foliageTexture',                        `foliage/foliageSDF.${compressedTextureExtension}${cb}`,                              compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; } ],
                 [ 'bushesReferences',                      `bushes/bushesReferences${compressedModelSuffix}.glb${cb}`,                           'gltf' ],
                 [ 'vehicle',                               `vehicle/default${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
-                [ 'customVehicle',                         `vehicle/lightningMcqueen${compressedModelSuffix}.glb${cb}`,                          'gltf' ],
+                [ 'customVehicle',                         `vehicle/lightningMcqueen.glb${cb}`,                                                'gltf' ],
                 [ 'retrowaveCar',                          `props/retrowaveCar${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
                 [ 'playgroundVisual',                      `playground/playgroundVisual${compressedModelSuffix}.glb${cb}`,                       'gltf' ],
                 [ 'playgroundPhysical',                    `playground/playgroundPhysical${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
@@ -200,8 +200,6 @@ export class Game
                 [ 'careerIRLTeacherTexture',               `career/careerIRLTeacher.png${cb}`,                         careerTextureFormat, (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'careerOnlineTeacherTexture',            `career/careerOnlineTeacher.png${cb}`,                      careerTextureFormat, (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'careerUzikTexture',                     `career/careerUzik.png${cb}`,                               careerTextureFormat, (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
-                [ 'timeMachineScreenMGSTexture',           `timeMachine/timeMachineScreenMGS.${compressedTextureExtension}${cb}`,                compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
-                [ 'timeMachineScreenFolioTexture',         `timeMachine/timeMachineScreenFolio.${compressedTextureExtension}${cb}`,              compressedTextureFormat, (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
                 [ 'landingStatue',                         `props/landingStatue${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
                 [ 'neonJesus',                             `props/neonJesus${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'lionStatue',                            `props/lionStatue${compressedModelSuffix}.glb${cb}`,                                  'gltf' ],

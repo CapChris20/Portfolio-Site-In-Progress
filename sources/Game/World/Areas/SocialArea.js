@@ -5,11 +5,12 @@ import socialData from '../../../data/social.js'
 import { Area } from './Area.js'
 import { View } from '../../View.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
+import { attachStatuePhysics } from '../StaticProp.js'
 
 // Visible center statue + nearby clutter in areas.glb
 const CENTER_STATUE_SKIP = /^Cube\.133$|^physicalFixed\.002$|^socialArrayReference$|^boyPhysicalDynamic$|^baguiraPhysicalDynamic$|^linkedInPhysicalDynamic$|^onlyfansPhysicalDynamic$/
 const CENTER_STATUE_RADIUS = 5
-const NEON_JESUS_HEIGHT = 10
+const NEON_JESUS_HEIGHT = 8.5
 const NEON_JESUS_WIDTH_SCALE = 1.4
 
 function isUnderNamedParent(node, name)
@@ -350,6 +351,15 @@ export class SocialArea extends Area
         this.game.materials.applyObjectMaterials(visual, { useCache: false })
         group.add(visual)
         this.game.scene.add(group)
+
+        group.updateMatrixWorld(true)
+        const fittedSize = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3())
+        const jesusColliderLength = Math.max(fittedSize.x, fittedSize.z)
+
+        attachStatuePhysics(group, jesusColliderLength, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
 
         this.centerStatue = group
     }
