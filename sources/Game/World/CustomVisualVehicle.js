@@ -1,8 +1,7 @@
 import * as THREE from 'three/webgpu'
-import { color, texture, uv } from 'three/tsl'
 import { Game } from '../Game.js'
 import { Trails } from '../Trails.js'
-import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
+import { applyVehicleStyleMaterials } from './PropVisual.js'
 
 export class CustomVisualVehicle
 {
@@ -39,58 +38,7 @@ export class CustomVisualVehicle
 
     enhanceMaterials(object)
     {
-        const capabilities = this.game.rendering?.renderer?.capabilities
-        const maxAnisotropy = typeof capabilities?.getMaxAnisotropy === 'function'
-            ? capabilities.getMaxAnisotropy()
-            : 8
-
-        object.traverse((child) =>
-        {
-            if(!child.isMesh || !child.material)
-                return
-
-            const convert = (sourceMaterial) =>
-            {
-                if(sourceMaterial.userData?.prevent)
-                    return sourceMaterial
-
-                let colorNode = null
-
-                if(sourceMaterial.map)
-                {
-                    sourceMaterial.map.colorSpace = THREE.SRGBColorSpace
-                    sourceMaterial.map.anisotropy = maxAnisotropy
-                    sourceMaterial.map.minFilter = THREE.LinearMipmapLinearFilter
-                    sourceMaterial.map.magFilter = THREE.LinearFilter
-                    sourceMaterial.map.generateMipmaps = true
-
-                    colorNode = texture(sourceMaterial.map, uv()).rgb.pow(0.88).mul(1.38)
-                }
-
-                const material = new MeshDefaultMaterial({
-                    colorNode: colorNode ?? color(0xffffff),
-                    hasFog: false,
-                    hasReveal: false,
-                    hasWater: false,
-                    hasLightBounce: false,
-                    hasCoreShadows: true,
-                    hasDropShadows: true,
-                })
-
-                if(sourceMaterial.map)
-                    material.map = sourceMaterial.map
-
-                material.name = `vehicle_${sourceMaterial.name || 'body'}`
-                material.shadowSide = THREE.BackSide
-
-                return material
-            }
-
-            if(Array.isArray(child.material))
-                child.material = child.material.map(convert)
-            else
-                child.material = convert(child.material)
-        })
+        applyVehicleStyleMaterials(object, { polished: true })
     }
 
     setChassis(sourceModel)

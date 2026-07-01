@@ -129,7 +129,7 @@ export class Grass
         const tipnessShadowMix = tipness.oneMinus().mul(terrainDataGrass)
 
         this.material = new MeshDefaultMaterial({
-            colorNode: this.game.terrain.colorNode(terrainData),
+            colorNode: this.game.terrain.colorNode(terrainData, bladePosition),
             normalNode: vec3(0, 1, 0),
             hasWater: false,
             hasLightBounce: false,

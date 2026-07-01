@@ -1,26 +1,22 @@
 import * as THREE from 'three/webgpu'
 import { color, float, Fn, instancedArray, mix, normalWorld, positionGeometry, step, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
-import helvetikerFont from '../../../../static/fonts/helvetiker_bold.typeface.json'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import { Area } from './Area.js'
 import gsap from 'gsap'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
-import { createGroundedPropVisual } from '../PropVisual.js'
+import { createGroundedPropVisual, applyVehicleStyleMaterials, preparePropMaterials } from '../PropVisual.js'
 import { attachStatuePhysics } from '../StaticProp.js'
 
 const LANDING_SPAWN = new THREE.Vector3(39.52898025512695, 0, 37.82522964477539)
 const _gameboyLookTarget = new THREE.Vector3()
 const CONTROLS_PROP_SKIP = /^gamepadPhysicalDynamic|^gizmoPhysicalDynamic|^phonePhysicalDynamic/
-const CONTROLS_GAMEBOY_LENGTH = 2.2
+const CONTROLS_GAMEBOY_LENGTH = 3.4
 const CONTROLS_GAMEBOY_BACK_OFFSET = 2.5
-
-const NAME_WORDS = [
-    ['C', 'H', 'R', 'I', 'S'],
-    ['S', 'H', 'I', 'N', 'A'],
-]
+const NAME_BLOCKS_LENGTH = 32
+const NAME_BLOCKS_HEIGHT = 4.5
+const NAME_BLOCKS_MASS = 5
+const NAME_BLOCKS_SEGMENTS = 10
 
 export class LandingArea extends Area
 {
@@ -56,109 +52,148 @@ export class LandingArea extends Area
         if(!references.length)
             return
 
-        this.letterMaterial = new MeshDefaultMaterial({
-            colorNode: color('#f0b4c8'),
-            hasWater: false,
-        })
-
         for(const reference of references)
         {
+            reference.visible = false
+
             const object = reference.userData.object
 
-            if(object?.physical)
-            {
-                object.physical.colliders[0].setActiveEvents(this.game.RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
-                object.physical.colliders[0].setContactForceEventThreshold(5)
-                object.physical.onCollision = (force, position) =>
-                {
-                    this.game.audio.groups.get('hitBrick').playRandomNext(force, position)
-                }
-            }
+            if(object)
+                this.game.objects.disable(object)
         }
 
-        const font = new FontLoader().parse(helvetikerFont)
-        this.setNameLetters(references, font)
+        this.addNameBlocks(references)
     }
 
-    setNameLetters(references, font)
+    addNameBlocks(references)
     {
-        const letters = NAME_WORDS.flat()
-        const sorted = [...references].sort((a, b) =>
+        const source = this.game.resources.nameBlocks?.scene
+
+        if(!source)
         {
-            if(a.position.x !== b.position.x)
-                return a.position.x - b.position.x
+            console.warn('LandingArea: nameBlocks resource missing')
+            return
+        }
 
-            return a.position.z - b.position.z
-        })
+        if(this.nameBlocksObject)
+            this.game.objects.disable(this.nameBlocksObject)
 
-        let targetHeight = 0
+        this.model.updateMatrixWorld(true)
+
+        const sorted = [...references].sort((a, b) => a.position.x - b.position.x)
+        const start = new THREE.Vector3()
+        const end = new THREE.Vector3()
+        sorted[0].getWorldPosition(start)
+        sorted[sorted.length - 1].getWorldPosition(end)
+
+        const center = new THREE.Vector3()
+        const slotBox = new THREE.Box3()
+
         for(const reference of references)
         {
-            const size = new THREE.Box3().setFromObject(reference).getSize(new THREE.Vector3())
-            targetHeight = Math.max(targetHeight, size.y)
+            const point = new THREE.Vector3()
+            reference.getWorldPosition(point)
+            center.add(point)
+            slotBox.expandByObject(reference)
         }
 
-        const start = sorted[0].position.clone()
-        const end = sorted[sorted.length - 1].position.clone()
-        const direction = end.clone().sub(start)
-        const rowLength = direction.length()
-        direction.normalize()
+        center.divideScalar(references.length)
 
-        const letterSpacing = sorted.length > 1 ? rowLength / (sorted.length - 1) : 0
+        const baselineY = slotBox.min.y
+        const rowDx = end.x - start.x
+        const rowDz = end.z - start.z
 
-        for(let i = 0; i < sorted.length; i++)
+        const model = source.clone(true)
+
+        model.traverse((child) =>
         {
-            const targetPosition = start.clone().add(direction.clone().multiplyScalar(letterSpacing * i))
-            this.replaceLetterGeometry(sorted[i], font, letters[i], targetHeight, targetPosition)
-        }
-    }
-
-    replaceLetterGeometry(reference, font, letter, targetHeight, targetPosition = null)
-    {
-        const oldBox = new THREE.Box3().setFromObject(reference)
-        const oldCenter = oldBox.getCenter(new THREE.Vector3())
-
-        const geometry = new TextGeometry(letter, {
-            font,
-            size: 1,
-            depth: 0.46,
-            curveSegments: 6,
-            bevelEnabled: true,
-            bevelThickness: 0.05,
-            bevelSize: 0.025,
-            bevelSegments: 2
+            if(child.isMesh)
+            {
+                child.castShadow = true
+                child.receiveShadow = true
+            }
         })
 
-        geometry.computeBoundingBox()
-        const newSize = geometry.boundingBox.getSize(new THREE.Vector3())
-        const scale = targetHeight / newSize.y
-        geometry.scale(scale, scale, scale)
-        geometry.center()
+        preparePropMaterials(model, 'nameSign')
+        applyVehicleStyleMaterials(model, { materialNamePrefix: 'nameSign' })
 
-        const oldGeometry = reference.geometry
+        model.rotation.y = Math.PI
 
-        if(targetPosition)
+        const rawBox = new THREE.Box3().setFromObject(model)
+        const rawSize = rawBox.getSize(new THREE.Vector3())
+        const lengthScale = NAME_BLOCKS_LENGTH / Math.max(rawSize.x, rawSize.z)
+        const heightScale = NAME_BLOCKS_HEIGHT / rawSize.y
+        const scale = Math.min(lengthScale, heightScale)
+
+        model.scale.setScalar(scale)
+        model.updateMatrixWorld(true)
+
+        const fittedBox = new THREE.Box3().setFromObject(model)
+        const fittedCenter = fittedBox.getCenter(new THREE.Vector3())
+
+        model.position.x -= fittedCenter.x
+        model.position.z -= fittedCenter.z
+        model.position.y -= fittedBox.min.y
+
+        const fittedSize = fittedBox.getSize(new THREE.Vector3())
+
+        const group = new THREE.Group()
+        group.name = 'nameBlocksPhysicalDynamic'
+        group.rotation.y = Math.atan2(rowDx, rowDz) + Math.PI * 0.5
+
+        const segmentLength = fittedSize.x / NAME_BLOCKS_SEGMENTS
+
+        for(let i = 0; i < NAME_BLOCKS_SEGMENTS; i++)
         {
-            reference.position.set(
-                targetPosition.x,
-                oldCenter.y,
-                targetPosition.z,
+            const cuboid = new THREE.Object3D()
+            cuboid.name = 'cuboid'
+            cuboid.scale.set(
+                segmentLength * 0.9,
+                fittedSize.y * 0.92,
+                fittedSize.z * 0.92,
             )
-            reference.geometry = geometry
-        }
-        else
-        {
-            const offset = oldCenter.clone().sub(reference.position)
-            geometry.translate(offset.x, offset.y, offset.z)
-            reference.geometry = geometry
+            cuboid.position.set(
+                fittedBox.min.x + segmentLength * (i + 0.5),
+                fittedSize.y * 0.46,
+                0,
+            )
+            group.add(cuboid)
         }
 
-        if(oldGeometry && oldGeometry !== geometry)
-            oldGeometry.dispose()
-        reference.material = this.letterMaterial
-        reference.visible = true
-        reference.castShadow = true
-        reference.receiveShadow = true
+        group.add(model)
+
+        const worldRotation = group.quaternion.clone()
+
+        this.nameBlocksObject = this.game.objects.addFromModel(
+            group,
+            {
+                updateMaterials: false,
+                parent: this.game.scene,
+            },
+            {
+                type: 'dynamic',
+                position: new THREE.Vector3(center.x, baselineY, center.z),
+                rotation: worldRotation,
+                sleeping: true,
+                mass: NAME_BLOCKS_MASS,
+            },
+        )
+
+        const { physical } = this.nameBlocksObject
+
+        if(physical)
+        {
+            for(const collider of physical.colliders)
+            {
+                collider.setActiveEvents(this.game.RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
+                collider.setContactForceEventThreshold(5)
+            }
+
+            physical.onCollision = (force, position) =>
+            {
+                this.game.audio.groups.get('hitBrick').playRandomNext(force, position)
+            }
+        }
     }
 
     setProjectsGuide()

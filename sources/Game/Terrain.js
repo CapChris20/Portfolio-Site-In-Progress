@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { Game } from './Game.js'
 import MeshGridMaterial, { MeshGridMaterialLine } from './Materials/MeshGridMaterial.js'
-import { color, Fn, mix, round, smoothstep, texture, uniform, uv, vec2 } from 'three/tsl'
+import { color, Fn, mix, smoothstep, texture, uniform, uv, vec2 } from 'three/tsl'
 
 export class Terrain
 {
@@ -21,6 +21,7 @@ export class Terrain
         }
 
         this.setGradient()
+        this.setFloorTexture()
         this.setNodes()
 
         this.game.ticker.events.on('tick', () =>
@@ -44,8 +45,10 @@ export class Terrain
 
         this.colors = [
             { stop: 0.1, value: '#ffb646' },
-            { stop: 0.3, value: '#ff347e' },
-            { stop: 0.9, value: '#2d004f' },
+            { stop: 0.22, value: '#ff5eaa' },
+            { stop: 0.4, value: '#5bc2b9' },
+            { stop: 0.65, value: '#3a9fd4' },
+            { stop: 0.9, value: '#1a3568' },
         ]
 
         const update = () =>
@@ -80,6 +83,18 @@ export class Terrain
         }
     }
 
+    setFloorTexture()
+    {
+        const floorTexture = this.game.resources.floorTexture
+        const tileScale = floorTexture?.tileScale
+
+        this.floorMap = floorTexture?.map ?? null
+        this.floorTileScale = uniform(vec2(
+            tileScale?.x ?? 0.5,
+            tileScale?.y ?? 0.5,
+        ))
+    }
+
     setNodes()
     {
         this.grassColorUniform = uniform(color('#c084fc'))
@@ -105,12 +120,21 @@ export class Terrain
             return data
         })
         
-        this.colorNode = Fn(([terrainData]) =>
+        this.colorNode = Fn(([terrainData, worldPosition]) =>
         {
-            // Dirt and water
-            const baseColor = texture(this.gradientTexture, vec2(0, terrainData.b.oneMinus()))
+            const baseColor = texture(this.gradientTexture, vec2(0, terrainData.b.oneMinus())).toVar()
 
-            // Grass
+            if(this.floorMap)
+            {
+                const floorColor = texture(this.floorMap, worldPosition.mul(this.floorTileScale))
+
+                // Only apply the floor texture well above the water line so bodies of
+                // water (and their shores) keep the water gradient.
+                const landMix = smoothstep(0.55, 0.8, terrainData.b.oneMinus())
+
+                baseColor.assign(mix(baseColor, floorColor, landMix))
+            }
+
             baseColor.assign(mix(baseColor, this.grassColorUniform, terrainData.g))
 
             return baseColor.rgb

@@ -4,6 +4,8 @@ export default [
         titleSmall: [ 'Core', 'Languages' ],
         url: 'https://developer.mozilla.org/en-US/docs/Web',
         description: 'Semantic HTML, modern CSS, and typed JavaScript for every project.',
+        signColor: '#12082a',
+        signAccent: '#7dd3fc',
         attributes:
         {
             role: 'HTML, CSS',
@@ -18,6 +20,8 @@ export default [
         titleSmall: [ 'Frontend', 'Stack' ],
         url: 'https://react.dev',
         description: 'Component-driven UIs with React, fast builds, and polished styling.',
+        signColor: '#0a1628',
+        signAccent: '#61dafb',
         attributes:
         {
             role: 'React, Next.js',
@@ -32,6 +36,8 @@ export default [
         titleSmall: [ 'Mobile', 'Cloud' ],
         url: 'https://coachconnect.app/',
         description: 'Cross-platform apps backed by Firebase, Supabase, and Node.',
+        signColor: '#1a1033',
+        signAccent: '#ff8757',
         attributes:
         {
             role: 'React Native',
@@ -46,6 +52,8 @@ export default [
         titleSmall: [ 'Dev', 'Tools' ],
         url: 'https://www.figma.com',
         description: 'Design in Figma, ship faster with Cursor and modern bundlers.',
+        signColor: '#1a0a28',
+        signAccent: '#c084fc',
         attributes:
         {
             role: 'Figma',
@@ -60,6 +68,8 @@ export default [
         titleSmall: [ 'APIs', 'AI' ],
         url: 'https://stripe.com/docs/api',
         description: 'Payments, media data, and AI integrations wired into real products.',
+        signColor: '#12082a',
+        signAccent: '#f472b6',
         attributes:
         {
             role: 'Stripe API',

@@ -324,7 +324,7 @@ export class Snow
             // Terrain data
             // const terrainUv = this.game.terrain.worldPositionToUvNode(positionA.xz)
             const terrainData = this.game.terrain.terrainNode(positionA.xz)
-            const terrainColor = this.game.terrain.colorNode(terrainData)
+            const terrainColor = this.game.terrain.colorNode(terrainData, positionA.xz)
 
             // Normal
             const newNormal = cross(positionA.sub(positionB), positionA.sub(positionC)).normalize()

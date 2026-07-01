@@ -87,7 +87,7 @@ export class MeshDefaultMaterial extends THREE.MeshLambertNodeMaterial
                 const bounceOrientation = reorientedNormal.dot(vec3(0, - 1, 0)).smoothstep(this.game.lighting.lightBounceEdgeLow, this.game.lighting.lightBounceEdgeHigh)
                 const bounceDistance = this.game.lighting.lightBounceDistance.sub(max(0, positionWorld.y)).div(this.game.lighting.lightBounceDistance).max(0).pow(2)
                 const terrainData = this.game.terrain.terrainNode(positionWorld.xz)
-                const bounceColor = this.game.terrain.colorNode(terrainData)
+                const bounceColor = this.game.terrain.colorNode(terrainData, positionWorld.xz)
                 outputColor.assign(mix(outputColor, bounceColor, bounceOrientation.mul(bounceDistance).mul(this.game.lighting.lightBounceMultiplier)))
             }
 

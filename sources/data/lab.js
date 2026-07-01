@@ -1,56 +1,72 @@
 export default [
     {
         title: 'Retronix Wallpapers',
-        description: 'Retro-futuristic wallpaper gallery with neon landscapes and synthwave vibes.',
+        description: 'Subscription wallpaper site — 600+ 4K retro and vaporwave static and live wallpapers. React 19, Vite, Firebase Auth, Stripe.',
+        signColor: '#12082a',
+        signAccent: '#ff3ea5',
         url: 'https://retronixwallpapers.com/',
         image: 'retronix-wallpapers.png',
-        imageMini: 'retronix-wallpapers-mini.png'
+        imageMini: 'retronix-wallpapers-mini.png',
     },
     {
         title: 'Vinyl Paradox',
-        description: 'A vinyl-collector app for cataloging records and discovering new artists.',
+        description: 'TypeScript + Tailwind sequel to Midnight Vinyl. Kanye West, Travis Scott, and Tyler the Creator — iTunes previews, canvas visualizers, synthwave UI.',
+        signColor: '#1a1033',
+        signAccent: '#b57dff',
         url: 'https://vinyl-paradox.netlify.app/',
         image: 'vinyl-paradox.png',
-        imageMini: 'vinyl-paradox-mini.png'
+        imageMini: 'vinyl-paradox-mini.png',
     },
     {
         title: 'Midnight Vinyl',
-        description: 'Late-night music player with mood-based playlists and album art.',
+        description: 'Original vanilla JS music player — The Weeknd, Frank Ocean, and Michael Jackson. Web Audio visualizers, iTunes previews, cyberpunk neon UI.',
+        signColor: '#0d1a33',
+        signAccent: '#4fc3f7',
         url: 'https://midnight-vinyl-playe.web.app/',
         image: 'midnight-vinyl.png',
-        imageMini: 'midnight-vinyl-mini.png'
+        imageMini: 'midnight-vinyl-mini.png',
     },
     {
         title: 'LivBakes',
-        description: 'Bakery brand site showcasing cakes, menus, and online ordering.',
+        description: 'Freelance macaron shop site for Olivia — HTML/CSS pages with Snipcart checkout, product catalog, and pink bakery branding.',
+        signColor: '#2a1810',
+        signAccent: '#ffb347',
         url: 'https://livbakes-official.netlify.app/',
         image: 'livbakes.png',
-        imageMini: 'livbakes-mini.png'
+        imageMini: 'livbakes-mini.png',
     },
     {
         title: 'CineMood',
-        description: 'Movie picker that matches films to your mood using smart filters.',
+        description: 'React mood movie picker — 8 vibes like Chill, Dreamy, and Hype. TMDB recommendations with cinematic video backgrounds.',
+        signColor: '#1a0a28',
+        signAccent: '#e040fb',
         url: 'https://cinemood-movie-picke.web.app/',
         image: 'cinemood.png',
-        imageMini: 'cinemood-mini.png'
+        imageMini: 'cinemood-mini.png',
     },
     {
         title: 'CoachConnect',
-        description: 'Platform connecting coaches and clients with scheduling and chat.',
+        description: 'Two-sided fitness SaaS where trainers manage clients and AI workouts while clients track progress with real-time coaching. Trainer CRM, AI workout generation, barcode nutrition, AI Coach with 15 tool actions. Live on iOS — Apple IAP, Stripe Connect, Firebase.',
+        signColor: '#0a1a28',
+        signAccent: '#40c4ff',
         url: 'https://coachconnect.app/',
         image: 'coachconnect.png',
-        imageMini: 'coachconnect-mini.png'
+        imageMini: 'coachconnect-mini.png',
     },
     {
         title: 'Devora',
-        description: 'Creative dev portfolio experiment — design-led front-end showcase.',
+        description: 'Tinder-style student networking for UM-Dearborn CECS — browse peer profiles, swipe to match, and connect for academic collaboration and project partnerships. Validated with 30-user survey (83% approval). Launching Fall 2026, full deployment Spring 2027.',
+        signColor: '#1a1035',
+        signAccent: '#ff6ec7',
         image: 'devora.png',
-        imageMini: 'devora-mini.png'
+        imageMini: 'devora-mini.png',
     },
     {
         title: 'PlateDX',
-        description: 'Food discovery app for finding dishes and restaurants nearby.',
+        description: 'Developer API for restaurant nutrition data from top 500 US chains — macro and micronutrient breakdowns, priced 10x cheaper than Nutritionix for indie developers. Freemium: 500 free calls/month, Starter $9.99, Pro $29.99.',
+        signColor: '#1a1508',
+        signAccent: '#ffd54f',
         image: 'platedx.png',
-        imageMini: 'platedx-mini.png'
-    }
+        imageMini: 'platedx-mini.png',
+    },
 ]

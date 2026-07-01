@@ -1,5 +1,41 @@
 [
   {
+    "area": "?",
+    "nodeName": "cupPhysicalDynamic",
+    "configType": "objectName",
+    "configKey": "cup",
+    "x": -54.02385711669922,
+    "y": 2.2334752082824707,
+    "z": -69.1495132446289
+  },
+  {
+    "area": "?",
+    "nodeName": "cupPhysicalDynamic.001",
+    "configType": "objectName",
+    "configKey": "cup.001",
+    "x": -54.47144317626953,
+    "y": 2.2334752082824707,
+    "z": -69.3852767944336
+  },
+  {
+    "area": "?",
+    "nodeName": "cupPhysicalDynamic.002",
+    "configType": "objectName",
+    "configKey": "cup.002",
+    "x": -53.26644515991211,
+    "y": 0.1466829776763916,
+    "z": -69.08492279052734
+  },
+  {
+    "area": "?",
+    "nodeName": "stoolPhysicalDynamic.004",
+    "configType": "objectName",
+    "configKey": "stool.004",
+    "x": -54.51887893676758,
+    "y": 1.0366544723510742,
+    "z": -65.53588104248047
+  },
+  {
     "area": "behindTheScene",
     "nodeName": "refObjectsPhysicalDynamic.021",
     "configType": "reference",
@@ -700,42 +736,6 @@
     "x": 30.870683670043945,
     "y": 1.3187533617019653,
     "z": -24.212215423583984
-  },
-  {
-    "area": "timeMachine",
-    "nodeName": "cupPhysicalDynamic",
-    "configType": "objectName",
-    "configKey": "cup",
-    "x": -54.02385711669922,
-    "y": 2.2334752082824707,
-    "z": -69.1495132446289
-  },
-  {
-    "area": "timeMachine",
-    "nodeName": "cupPhysicalDynamic.001",
-    "configType": "objectName",
-    "configKey": "cup.001",
-    "x": -54.47144317626953,
-    "y": 2.2334752082824707,
-    "z": -69.3852767944336
-  },
-  {
-    "area": "timeMachine",
-    "nodeName": "cupPhysicalDynamic.002",
-    "configType": "objectName",
-    "configKey": "cup.002",
-    "x": -53.26644515991211,
-    "y": 0.1466829776763916,
-    "z": -69.08492279052734
-  },
-  {
-    "area": "timeMachine",
-    "nodeName": "stoolPhysicalDynamic.004",
-    "configType": "objectName",
-    "configKey": "stool.004",
-    "x": -54.51887893676758,
-    "y": 1.0366544723510742,
-    "z": -65.53588104248047
   },
   {
     "area": "toilet",

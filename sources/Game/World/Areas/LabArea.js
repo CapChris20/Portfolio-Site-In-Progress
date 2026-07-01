@@ -8,7 +8,8 @@ import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGe
 import { remapClamp, safeMod, signedModDelta } from '../../utilities/maths.js'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
-import { DescriptionSign, OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
+import { DescriptionSign, layoutScreenshotForCaption, OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
+import { removeBlackboards } from '../removeBlackboards.js'
 import { Area } from './Area.js'
 
 export class LabArea extends Area
@@ -53,6 +54,7 @@ export class LabArea extends Area
         this.setBlackBoard()
         this.setCandleFlames()
         this.setCauldron()
+        this.hideDecorProps()
         this.setAchievement()
 
         this.changeProject(0, null, true)
@@ -351,6 +353,7 @@ export class LabArea extends Area
         this.images.mesh.receiveShadow = true
         this.images.mesh.castShadow = false
         this.images.mesh.visible = false // Wait for first load to display
+        layoutScreenshotForCaption(this.images.mesh)
 
         // Finishing initiating and use first image as default resource
         this.images.init = (key) =>
@@ -780,7 +783,7 @@ export class LabArea extends Area
     {
         const frame = this.images.mesh.parent
 
-        if(!frame)
+        if(!frame || !this.title?.group)
             return
 
         this.descriptionSign = new DescriptionSign({
@@ -788,13 +791,40 @@ export class LabArea extends Area
             imagesMesh: this.images.mesh,
             templateGroup: this.title.group,
             texts: this.texts,
-            offset: OFFSET_FROM_IMAGES.labSign,
             fontSizeMultiplier: 0.2,
-            textWidth: 4.4,
-            textHeight: 1.35,
-            maxChars: 30,
+            textWidth: 3.9,
+            textHeight: 0.95,
+            maxChars: 36,
             maxLines: 4,
+            placeBelowImage: true,
+            belowGap: 0.06,
+            belowExtraY: 0,
+            showPanel: false,
         })
+    }
+
+    hideDecorProps()
+    {
+        const decorPattern = /cauldron|mainTable|sideTable|tablePhysical|^table\.|table\.004|Cube\.003|refCarpet|body\.001/i
+
+        for(const object of this.objects.items)
+        {
+            const name = object.visual?.object3D?.name ?? ''
+
+            if(decorPattern.test(name))
+                this.game.objects.disable(object)
+        }
+
+        for(const key of [ 'heat', 'wood', 'liquid' ])
+        {
+            const refs = this.references.items.get(key)
+
+            if(!refs)
+                continue
+
+            for(const ref of refs)
+                ref.visible = false
+        }
     }
 
     setScroller()
@@ -1096,145 +1126,7 @@ export class LabArea extends Area
 
     setBlackBoard()
     {
-        this.blackBoard = {}
-        this.blackBoard.active = true
-        this.blackBoard.group = this.references.items.get('blackBoard')[0]
-        this.blackBoard.parent = this.blackBoard.group.parent
-
-        // Jump timeline
-        this.blackBoard.timeline = gsap.timeline({
-            repeat: -1,
-            repeatDelay: 5,
-            paused: true,
-            onRepeat: () =>
-            {
-                if(this.state === LabArea.STATE_CLOSED || this.state === LabArea.STATE_CLOSING || !this.blackBoard.active)
-                    this.blackBoard.timeline.pause()
-            }
-        })
-
-        this.blackBoard.timeline.to(this.blackBoard.group.position, { y: 0.25, ease: 'power2.out', duration: 0.7 }, 0 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.position, { y: 0, ease: 'power2.in', duration: 0.7 }, 0.7 + 2)
-
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0.1, duration: 0.15 }, 0 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: -0.1, duration: 0.3 }, 0.15 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0.1, duration: 0.3 }, 0.45 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: -0.1, duration: 0.3 }, 0.75 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0, duration: 0.3 }, 1.05 + 2)
-
-        // Labels
-        this.blackBoard.labelsGamepadPlaystation = this.references.items.get('blackboardLabelsGamepadPlaystation')[0]
-        this.blackBoard.labelsGamepadXbox = this.references.items.get('blackboardLabelsGamepadXbox')[0]
-        this.blackBoard.labelsMouseKeyboard = this.references.items.get('blackboardLabelsMouseKeyboard')[0]
-        this.blackBoard.labelsGamepadPlaystation.castShadow = false
-        this.blackBoard.labelsGamepadXbox.castShadow = false
-        this.blackBoard.labelsMouseKeyboard.castShadow = false
-        this.blackBoard.labelsGamepadPlaystation.visible = false
-        this.blackBoard.labelsGamepadXbox.visible = false
-
-        // Dynamic project description — fresh plane sized to the board face (cloned label UVs break dynamic text)
-        const labelRef = this.blackBoard.labelsMouseKeyboard
-        labelRef.geometry.computeBoundingBox()
-        const labelSize = new THREE.Vector3()
-        labelRef.geometry.boundingBox.getSize(labelSize)
-
-        const descriptionGeometry = new THREE.PlaneGeometry(labelSize.x, labelSize.y)
-        this.blackBoard.descriptionMesh = new THREE.Mesh(descriptionGeometry)
-        this.blackBoard.descriptionMesh.name = 'blackboardDescription'
-        this.blackBoard.descriptionMesh.position.copy(labelRef.position)
-        this.blackBoard.descriptionMesh.quaternion.copy(labelRef.quaternion)
-        this.blackBoard.descriptionMesh.scale.copy(labelRef.scale)
-        this.blackBoard.descriptionMesh.position.z -= 0.006
-        this.blackBoard.descriptionMesh.visible = false
-        this.blackBoard.descriptionMesh.renderOrder = 5
-        this.blackBoard.group.add(this.blackBoard.descriptionMesh)
-
-        this.blackBoard.descriptionCanvas = new TextCanvas(
-            this.texts.fontFamily,
-            this.texts.fontWeight,
-            this.texts.fontSizeMultiplier * 0.17,
-            2.4,
-            1.85,
-            280,
-            'center',
-            0.24,
-            0.14,
-        )
-        this.blackBoard.descriptionCanvas.texture.minFilter = THREE.LinearFilter
-        this.blackBoard.descriptionCanvas.texture.magFilter = THREE.LinearFilter
-        this.texts.createMaterialOnMesh(this.blackBoard.descriptionMesh, this.blackBoard.descriptionCanvas.texture)
-        this.blackBoard.descriptionMesh.material.depthWrite = false
-        this.blackBoard.descriptionMesh.material.polygonOffset = true
-        this.blackBoard.descriptionMesh.material.polygonOffsetFactor = -2
-        this.blackBoard.descriptionMesh.material.polygonOffsetUnits = -2
-
-        if(this.blackBoard.descriptionMesh.material?.isMeshLambertNodeMaterial)
-        {
-            this.blackBoard.descriptionMesh.material.hasReveal = false
-            this.blackBoard.descriptionMesh.material.side = THREE.DoubleSide
-        }
-
-        this.blackBoard.updateContent = () =>
-        {
-            const isOpen = this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING
-
-            if(isOpen)
-            {
-                this.blackBoard.labelsGamepadPlaystation.visible = false
-                this.blackBoard.labelsGamepadXbox.visible = false
-                this.blackBoard.labelsMouseKeyboard.visible = false
-                this.blackBoard.descriptionMesh.visible = true
-
-                const lines = wrapDescription(this.navigation.current?.description ?? '', 24, 5)
-                this.blackBoard.descriptionCanvas.updateText(lines.length ? lines : [''])
-            }
-            else
-            {
-                this.blackBoard.descriptionMesh.visible = false
-                this.showBlackBoardControlLabels()
-            }
-        }
-        
-        this.game.inputs.events.on('modeChange', () =>
-        {
-            this.blackBoard.updateContent()
-        })
-
-        this.game.inputs.gamepad.events.on('typeChange', () =>
-        {
-            this.blackBoard.updateContent()
-        })
-
-        this.blackBoard.updateContent()
-    }
-
-    showBlackBoardControlLabels()
-    {
-        if(this.state === LabArea.STATE_OPEN || this.state === LabArea.STATE_OPENING)
-            return
-
-        this.blackBoard.labelsGamepadPlaystation.visible = false
-        this.blackBoard.labelsGamepadXbox.visible = false
-        this.blackBoard.labelsMouseKeyboard.visible = false
-
-        if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
-        {
-            if(this.game.inputs.gamepad.type === 'xbox')
-                this.blackBoard.labelsGamepadXbox.visible = true
-            else
-                this.blackBoard.labelsGamepadPlaystation.visible = true
-
-            this.blackBoard.parent.add(this.blackBoard.group)
-        }
-        else if(this.game.inputs.mode === Inputs.MODE_MOUSEKEYBOARD)
-        {
-            this.blackBoard.labelsMouseKeyboard.visible = true
-            this.blackBoard.parent.add(this.blackBoard.group)
-        }
-        else if(this.game.inputs.mode === Inputs.MODE_TOUCH)
-        {
-            this.blackBoard.parent.remove(this.blackBoard.group)
-        }
+        this.blackBoard = removeBlackboards(this)
     }
 
     setCandleFlames()

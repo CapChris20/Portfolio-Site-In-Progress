@@ -7,7 +7,8 @@ import { View } from '../../View.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
 import { attachStatuePhysics } from '../StaticProp.js'
 
-// Visible center statue + nearby clutter in areas.glb
+// Props removed from the social area (3D clutter + unused platform icons)
+const SOCIAL_PROP_SKIP = /twitch|youtube|xPhysical|mail|bluesky|onlyfans|linkedIn/i
 const CENTER_STATUE_SKIP = /^Cube\.133$|^physicalFixed\.002$|^socialArrayReference$|^boyPhysicalDynamic$|^baguiraPhysicalDynamic$|^linkedInPhysicalDynamic$|^onlyfansPhysicalDynamic$/
 const CENTER_STATUE_RADIUS = 5
 const NEON_JESUS_HEIGHT = 8.5
@@ -34,7 +35,7 @@ export class SocialArea extends Area
     {
         for(const child of [...model.children])
         {
-            if(CENTER_STATUE_SKIP.test(child.name))
+            if(CENTER_STATUE_SKIP.test(child.name) || SOCIAL_PROP_SKIP.test(child.name))
                 model.remove(child)
         }
 
@@ -52,7 +53,6 @@ export class SocialArea extends Area
         }
 
         this.setLinks()
-        this.setCenterLinkedIn()
         this.setStatue()
         // this.setFWA()
         this.setAchievement()
@@ -66,7 +66,7 @@ export class SocialArea extends Area
 
         for(const child of [...this.model.children])
         {
-            if(CENTER_STATUE_SKIP.test(child.name))
+            if(CENTER_STATUE_SKIP.test(child.name) || SOCIAL_PROP_SKIP.test(child.name))
                 continue
 
             if(typeof child.userData.preventAutoAdd === 'undefined' || child.userData.preventAutoAdd === false)
@@ -104,12 +104,12 @@ export class SocialArea extends Area
     setLinks()
     {
         const radius = 6
-        const ringLinks = socialData.filter((link) => link.name !== 'LinkedIn')
+        const count = socialData.length
         let i = 0
 
-        for(const link of ringLinks)
+        for(const link of socialData)
         {
-            const angle = i * Math.PI / (ringLinks.length - 1)
+            const angle = count > 1 ? i * Math.PI / (count - 1) : 0
             const position = this.center.clone()
             position.x += Math.cos(angle) * radius
             position.y = 1
@@ -124,7 +124,7 @@ export class SocialArea extends Area
                 {
                     if(link.url)
                         window.open(link.url, '_blank')
-                    else(link.modal)
+                    else if(link.modal)
                         this.game.modals.open(link.modal)
                 },
                 () =>
@@ -143,40 +143,6 @@ export class SocialArea extends Area
             
             i++
         }
-    }
-
-    setCenterLinkedIn()
-    {
-        const linkedIn = socialData.find((link) => link.name === 'LinkedIn')
-
-        if(!linkedIn?.url)
-            return
-
-        const position = this.center.clone()
-        position.y = 2.5
-
-        this.game.interactivePoints.create(
-            position,
-            linkedIn.name,
-            InteractivePoints.ALIGN_LEFT,
-            InteractivePoints.STATE_CONCEALED,
-            () =>
-            {
-                window.open(linkedIn.url, '_blank')
-            },
-            () =>
-            {
-                this.game.inputs.interactiveButtons.addItems(['interact'])
-            },
-            () =>
-            {
-                this.game.inputs.interactiveButtons.removeItems(['interact'])
-            },
-            () =>
-            {
-                this.game.inputs.interactiveButtons.removeItems(['interact'])
-            }
-        )
     }
 
     setStatue()
@@ -240,7 +206,7 @@ export class SocialArea extends Area
         const center = new THREE.Vector3()
         centerRef.getWorldPosition(center)
 
-        const keepPattern = /^socialCenterStatue$|^refStatue$|^gitHub$|^twitch$|^youtube$|^x$|^discord$|^mail$|^bluesky$|^sudo$/i
+        const keepPattern = /^socialCenterStatue$|^refStatue$|^gitHub$|^discord$/i
 
         for(const object of [...this.objects.items])
         {

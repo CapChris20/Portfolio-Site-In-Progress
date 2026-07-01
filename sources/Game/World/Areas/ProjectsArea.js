@@ -7,7 +7,8 @@ import { TextCanvas } from '../../TextCanvas.js'
 import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGeometry, sin, step, texture, uniform, uv, vec3, vec4 } from 'three/tsl'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
-import { OFFSET_FROM_IMAGES, positionRelativeToImages, wrapDescription } from '../DescriptionSign.js'
+import { DescriptionSign, layoutScreenshotForCaption, OFFSET_FROM_IMAGES, positionRelativeToImages } from '../DescriptionSign.js'
+import { removeBlackboards } from '../removeBlackboards.js'
 import { Area } from './Area.js'
 
 export class ProjectsArea extends Area
@@ -53,6 +54,8 @@ export class ProjectsArea extends Area
         this.setOven()
         this.setGrinder()
         this.setAnvil()
+        this.hideDecorProps()
+        this.setDescriptionSign()
         this.setAchievement()
 
         this.changeProject(0, ProjectsArea.DIRECTION_NEXT, false, true)
@@ -350,6 +353,7 @@ export class ProjectsArea extends Area
         this.images.mesh.receiveShadow = true
         this.images.mesh.castShadow = false
         this.images.mesh.visible = false // Wait for first load to display
+        layoutScreenshotForCaption(this.images.mesh)
 
         // Finishing initiating and use first image as default resource
         this.images.init = (key) =>
@@ -692,141 +696,21 @@ export class ProjectsArea extends Area
 
     setAttributes()
     {
-        this.attributes = {}
-        this.attributes.group = this.references.items.get('attributes')[0]
-        this.attributes.inter = 0.75
-        this.attributes.names = ['role', 'at', 'with']
-        this.attributes.items = {}
-        this.attributes.status = 'hidden'
-        this.attributes.originalY = this.attributes.group.position.y
-        this.attributes.group.visible = true
+        const group = this.references.items.get('attributes')?.[0]
 
-        for(const child of this.attributes.group.children)
+        if(group)
         {
-            const item = {}
-            const isDescription = child.name === 'role'
+            group.visible = false
 
-            item.group = child
-            item.visible = false
-            item.group.visible = false
-            item.panel = item.group.children.find(_child => _child.name.startsWith('panel'))
-            item.backdrop = item.group.children.find(_child =>
-                _child.name.startsWith('panel') ||
-                _child.name.startsWith('Cube') ||
-                _child.name.startsWith('cube') ||
-                _child.name.startsWith('refel'),
-            )
-            const textMesh = item.group.children.find(_child => _child.name.startsWith('text'))
-            item.textCanvas = new TextCanvas(
-                this.texts.fontFamily,
-                this.texts.fontWeight,
-                this.texts.fontSizeMultiplier * (isDescription ? 0.18 : 0.26),
-                isDescription ? 5 : 1.4,
-                isDescription ? 2.2 : 0.45,
-                this.texts.density,
-                'center',
-                isDescription ? 0.22 : 0.2
-            )
-
-            this.texts.createMaterialOnMesh(textMesh, item.textCanvas.texture)
-
-            this.attributes.items[child.name] = item
+            group.traverse((child) =>
+            {
+                child.visible = false
+            })
         }
 
-        this.attributes.update = () =>
-        {
-            if(this._attributesUpdateDelay)
-            {
-                this._attributesUpdateDelay.kill()
-                this._attributesUpdateDelay = null
-            }
-
-            for(const name of this.attributes.names)
-            {
-                const item = this.attributes.items[name]
-
-                if(item?.group)
-                    gsap.killTweensOf(item.group.scale)
-            }
-
-            gsap.killTweensOf(this.attributes.group.position)
-
-            this.attributes.status = 'hiding'
-            let i = 0
-            for(const name of this.attributes.names)
-            {
-                const item = this.attributes.items[name]
-
-                if(!item)
-                    continue
-
-                gsap.to(item.group.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.5, delay: 0.1 * i, ease: 'power2.in', overwrite: true })
-                i++
-            }
-
-            this._attributesUpdateDelay = gsap.delayedCall(1, () =>
-            {
-                this._attributesUpdateDelay = null
-                this.attributes.status = 'visible'
-
-                let i = 0
-                for(const name of this.attributes.names)
-                {
-                    const item = this.attributes.items[name]
-
-                    if(!item)
-                        continue
-
-                    let attribute = null
-
-                    if(name === 'role')
-                        attribute = wrapDescription(this.navigation.current.description ?? '', 28, 4)
-                    else
-                        attribute = this.navigation.current.attributes?.[name]
-
-                    if(Array.isArray(attribute) && name !== 'role')
-                        attribute = attribute.join(', ')
-
-                    if(attribute && (!Array.isArray(attribute) || attribute.length))
-                    {
-                        item.group.visible = true
-                        item.group.scale.set(0.01, 0.01, 0.01)
-                        gsap.to(item.group.scale, { x: 1, y: 1, z: 1, duration: 1, delay: 0.2 * i, ease: 'back.out(2)', overwrite: true })
-
-                        item.textCanvas.updateText(attribute)
-
-                        if(name === 'role')
-                        {
-                            const lines = Array.isArray(attribute) ? attribute : [attribute]
-                            const ratio = item.textCanvas.getMeasure().width / this.texts.density
-                            const backdropWidth = Math.max(ratio + 0.45, 1.6)
-                            const backdropHeight = 0.35 + lines.length * 0.22
-
-                            if(item.panel)
-                            {
-                                item.panel.scale.x = backdropWidth
-                                item.panel.scale.y = backdropHeight
-                            }
-
-                            if(item.backdrop && item.backdrop !== item.panel)
-                            {
-                                item.backdrop.scale.x = backdropWidth
-                                item.backdrop.scale.y = backdropHeight
-                            }
-                        }
-
-                        item.group.position.y = - i * 0.75
-                        
-                        i++
-                    }
-                    else
-                    {
-                        item.group.visible = false
-                    }
-                }
-
-                this.attributes.group.position.y = this.attributes.originalY + Math.max(i - 1, 0) * 0.75 / 2
-            })
+        this.attributes = {
+            status: 'hidden',
+            update: () => {},
         }
     }
 
@@ -1207,89 +1091,7 @@ export class ProjectsArea extends Area
 
     setBlackBoard()
     {
-        this.blackBoard = {}
-        this.blackBoard.active = true
-        this.blackBoard.group = this.references.items.get('blackBoard')[0]
-        this.blackBoard.parent = this.blackBoard.group.parent
-
-        // Jump timeline
-        this.blackBoard.timeline = gsap.timeline({
-            repeat: -1,
-            repeatDelay: 5,
-            paused: true,
-            onRepeat: () =>
-            {
-                if(this.state === ProjectsArea.STATE_CLOSED || this.state === ProjectsArea.STATE_CLOSING || !this.blackBoard.active)
-                    this.blackBoard.timeline.pause()
-            }
-        })
-
-        this.blackBoard.timeline.to(this.blackBoard.group.position, { y: 0.25, ease: 'power2.out', duration: 0.7 }, 0 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.position, { y: 0, ease: 'power2.in', duration: 0.7 }, 0.7 + 2)
-
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0.1, duration: 0.15 }, 0 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: -0.1, duration: 0.3 }, 0.15 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0.1, duration: 0.3 }, 0.45 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: -0.1, duration: 0.3 }, 0.75 + 2)
-        this.blackBoard.timeline.to(this.blackBoard.group.rotation, { x: 0, duration: 0.3 }, 1.05 + 2)
-
-        // Labels
-        this.blackBoard.labelsGamepadPlaystation = this.references.items.get('blackboardLabelsGamepadPlaystation')[0]
-        this.blackBoard.labelsGamepadXbox = this.references.items.get('blackboardLabelsGamepadXbox')[0]
-        this.blackBoard.labelsMouseKeyboard = this.references.items.get('blackboardLabelsMouseKeyboard')[0]
-        this.blackBoard.labelsGamepadPlaystation.castShadow = false
-        this.blackBoard.labelsGamepadXbox.castShadow = false
-        this.blackBoard.labelsMouseKeyboard.castShadow = false
-        this.blackBoard.labelsGamepadPlaystation.visible = false
-        this.blackBoard.labelsGamepadXbox.visible = false
-        
-        this.game.inputs.events.on('modeChange', () =>
-        {
-            if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
-            {
-                if(this.game.inputs.gamepad.type === 'xbox')
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = true
-                    this.blackBoard.labelsGamepadPlaystation.visible = false
-                }
-                else
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = false
-                    this.blackBoard.labelsGamepadPlaystation.visible = true
-                }
-                this.blackBoard.labelsMouseKeyboard.visible = false
-
-                this.blackBoard.parent.add(this.blackBoard.group)
-            }
-            else if(this.game.inputs.mode === Inputs.MODE_MOUSEKEYBOARD)
-            {
-                this.blackBoard.labelsGamepadXbox.visible = false
-                this.blackBoard.labelsGamepadPlaystation.visible = false
-                this.blackBoard.labelsMouseKeyboard.visible = true
-                this.blackBoard.parent.add(this.blackBoard.group)
-            }
-            else if(this.game.inputs.mode === Inputs.MODE_TOUCH)
-            {
-                this.blackBoard.parent.remove(this.blackBoard.group)
-            }
-        })
-
-        this.game.inputs.gamepad.events.on('typeChange', () =>
-        {
-            if(this.game.inputs.mode === Inputs.MODE_GAMEPAD)
-            {
-                if(this.game.inputs.gamepad.type === 'xbox')
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = true
-                    this.blackBoard.labelsGamepadPlaystation.visible = false
-                }
-                else
-                {
-                    this.blackBoard.labelsGamepadXbox.visible = false
-                    this.blackBoard.labelsGamepadPlaystation.visible = true
-                }
-            }
-        })
+        this.blackBoard = removeBlackboards(this)
     }
 
     setOven()
@@ -1380,6 +1182,54 @@ export class ProjectsArea extends Area
         this.anvil.blade.material = material
     }
 
+    setDescriptionSign()
+    {
+        const frame = this.images.mesh.parent
+
+        if(!frame || !this.title?.group)
+            return
+
+        this.descriptionSign = new DescriptionSign({
+            frame,
+            imagesMesh: this.images.mesh,
+            templateGroup: this.title.group,
+            texts: this.texts,
+            fontSizeMultiplier: 0.2,
+            textWidth: 3.9,
+            textHeight: 0.95,
+            maxChars: 36,
+            maxLines: 4,
+            placeBelowImage: true,
+            belowGap: 0.06,
+            belowExtraY: 0,
+            showPanel: false,
+        })
+    }
+
+    hideDecorProps()
+    {
+        const decorPattern = /blower|charcoal|grinder|anvil|hammer|blade|oven/i
+
+        for(const object of this.objects.items)
+        {
+            const name = object.visual?.object3D?.name ?? ''
+
+            if(decorPattern.test(name))
+                this.game.objects.disable(object)
+        }
+
+        for(const key of [ 'blower', 'charcoal', 'grinder', 'anvil', 'hammer', 'blade' ])
+        {
+            const refs = this.references.items.get(key)
+
+            if(!refs)
+                continue
+
+            for(const ref of refs)
+                ref.visible = false
+        }
+    }
+
     setAchievement()
     {
         this.events.on('boundingIn', () =>
@@ -1442,6 +1292,10 @@ export class ProjectsArea extends Area
         this.attributes.update()
         this.url.status = 'hidden'
         this.url.update(ProjectsArea.DIRECTION_NEXT)
+
+        if(this.descriptionSign)
+            this.descriptionSign.update(this.navigation.current?.description ?? '', ProjectsArea.DIRECTION_NEXT)
+
         // Deactivate physical vehicle
         this.game.physicalVehicle.deactivate()
 
@@ -1501,6 +1355,9 @@ export class ProjectsArea extends Area
         this.pagination.previousIntersect.active = false
         this.pagination.nextIntersect.active = false
         this.url.intersect.active = false
+
+        if(this.descriptionSign)
+            this.descriptionSign.setText(null)
 
         // Activate physical vehicle
         this.game.physicalVehicle.activate()
@@ -1593,6 +1450,14 @@ export class ProjectsArea extends Area
         this.url.update(direction)
         this.url.setLabel()
         this.distinctions.update()
+
+        if(this.descriptionSign)
+        {
+            if(this.state === ProjectsArea.STATE_OPEN || this.state === ProjectsArea.STATE_OPENING)
+                this.descriptionSign.update(this.navigation.current?.description ?? '', direction)
+            else
+                this.descriptionSign.setText(null)
+        }
 
         // Change image
         let imageIndex = null

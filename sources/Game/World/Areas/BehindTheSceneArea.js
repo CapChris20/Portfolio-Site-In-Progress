@@ -4,6 +4,8 @@ import { PortalSlabsGeometry } from '../../Geometries/PortalSlabsGeometry.js'
 import { attribute, color, float, Fn, mix, PI, PI2, positionGeometry, screenCoordinate, sin, texture, uniform, varying, vec2, vec3, vec4, viewportCoordinate } from 'three/tsl'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import { Area } from './Area.js'
+import { createGroundedPropVisual } from '../PropVisual.js'
+import { removeBlackboards } from '../removeBlackboards.js'
 
 export class BehindTheSceneArea extends Area
 {
@@ -22,8 +24,11 @@ export class BehindTheSceneArea extends Area
 
         this.center = this.references.items.get('center')[0].position
 
+        this.blackBoard = removeBlackboards(this)
+
         this.setSounds()
         this.setSlabs()
+        this.setRetroMountain()
         this.setInteractivePoint()
         this.setAchievement()
     }
@@ -112,6 +117,33 @@ export class BehindTheSceneArea extends Area
             this.game.debug.addThreeColorBinding(this.debugPanel, this.bloomColor.value, 'bloomColor')
             this.debugPanel.addBinding(this.bloomIntensity, 'value', { label: 'bloomIntensity', min: 0, max: 20, step: 0.001 })
         }
+    }
+
+    setRetroMountain()
+    {
+        const source = this.game.resources.retroMountain?.scene
+
+        if(!source)
+        {
+            console.warn('BehindTheSceneArea: retroMountain resource missing')
+            return
+        }
+
+        const visual = createGroundedPropVisual(source, 5.5, {
+            materialPrefix: 'behindTheSceneRetroMountain',
+            castShadow: false,
+            receiveShadow: true,
+        })
+
+        this.game.materials.applyObjectMaterials(visual, { useCache: false })
+
+        this.centerPropGroup = new THREE.Group()
+        this.centerPropGroup.name = 'behindTheSceneRetroMountain'
+        this.centerPropGroup.position.copy(this.center)
+        this.centerPropGroup.position.y = 0.01
+        this.centerPropGroup.add(visual)
+        this.game.scene.add(this.centerPropGroup)
+        this.objects.hideable.push(this.centerPropGroup)
     }
     
     setInteractivePoint()

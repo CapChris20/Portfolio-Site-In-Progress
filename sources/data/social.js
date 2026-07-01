@@ -1,5 +1,5 @@
 export default [
     { name: 'GitHub', url: 'https://github.com/CapChris20', align: 'right' },
-    { name: 'CoachConnect', url: 'https://coachconnect.app/', align: 'right' },
-    { name: 'Retronix', url: 'https://retronixwallpapers.com/', align: 'left' },
+    { name: 'LinkedIn', url: 'https://www.linkedin.com/in/chris-shina-975525333/', align: 'left' },
+    { name: 'Discord', modal: 'discord', align: 'right' },
 ]

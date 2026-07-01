@@ -11,15 +11,9 @@ const text = `
 ╚═══════════════════════╝
 
 ╔═ Socials ═══════════════╗
-║ Mail           ⇒ simon.bruno.77@gmail.com
-║ X              ⇒ https://x.com/bruno_simon
-║ BlueSKy        ⇒ https://bsky.app/profile/bruno-simon.bsky.social
-║ Discord public ⇒ https://discord.com/channels/769928116701233152/1445064878384480288
-║ Discord PM     ⇒ https://discord.com/users/202907325722263553
-║ Youtube        ⇒ https://www.youtube.com/@BrunoSimon
-║ Twitch         ⇒ https://www.twitch.tv/bruno_simon_dev
-║ GitHub         ⇒ https://github.com/brunosimon
-║ LinkedIn       ⇒ https://www.linkedin.com/in/simonbruno77/
+║ GitHub         ⇒ https://github.com/CapChris20
+║ LinkedIn       ⇒ https://www.linkedin.com/in/chris-shina-975525333/
+║ Discord        ⇒ CaptainChris20
 ╚═══════════════════════╝
 
 ╔═ Debug ═══════════════╗

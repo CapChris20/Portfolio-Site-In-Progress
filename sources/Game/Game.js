@@ -50,6 +50,7 @@ import { Portfolio } from './Portfolio.js'
 import { CareerModal } from './CareerModal.js'
 import gsap from 'gsap'
 import { Map } from './Map.js'
+import { extractGlbColorMap } from './World/extractGlbColorMap.js'
 
 export class Game
 {
@@ -113,7 +114,7 @@ export class Game
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
         this.vehicleMode = import.meta.env.VITE_VEHICLE || 'custom'
 
-        const cb = '?cb=99'
+        const cb = '?cb=107'
         const careerTextureFormat = 'texture'
         this.resources = await this.resourcesLoader.load([
             [ 'respawnsReferencesModel',    `respawns/respawnsReferences${compressedModelSuffix}.glb${cb}`, 'gltf' ],
@@ -162,6 +163,23 @@ export class Game
                 [ 'lanternsModel',                         `lanterns/lanterns${compressedModelSuffix}.glb${cb}`,                                 'gltf' ],
                 [ 'terrainTexture',                        `terrain/terrain.${compressedTextureExtension}${cb}`,                                 compressedTextureFormat, (resource) => { resource.flipY = false; } ],
                 [ 'terrainModel',                          `terrain/terrain${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
+                [ 'floorTexture',                          `props/FloorTexture.glb${cb}`,                                                        'gltf', (resource) =>
+                {
+                    try
+                    {
+                        const extracted = extractGlbColorMap(resource, { renderer: this.rendering?.renderer })
+
+                        if(extracted)
+                        {
+                            resource.map = extracted.map
+                            resource.tileScale = extracted.tileScale
+                        }
+                    }
+                    catch(error)
+                    {
+                        console.warn('FloorTexture: could not extract map', error)
+                    }
+                } ],
                 [ 'floorSlabsTexture',                     `floor/slabs.${compressedTextureExtension}`,                                     compressedTextureFormat, (resource) => { resource.wrapS = THREE.RepeatWrapping; resource.wrapT = THREE.RepeatWrapping; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
                 [ 'palmTreesVisualModel',                  `palmTrees/palmTreesVisual.glb${cb}`,                                                 'gltf', (resource) =>
                 {
@@ -211,7 +229,31 @@ export class Game
                 [ 'pistonHorse',                           `props/pistonHorse${compressedModelSuffix}.glb${cb}`,                                 'gltf' ],
                 [ 'sonic',                                 `props/sonic${compressedModelSuffix}.glb${cb}`,                                       'gltf' ],
                 [ 'motorcycle',                            `props/motorcycle${compressedModelSuffix}.glb${cb}`,                                  'gltf' ],
+                [ 'nameBlocks',                            `props/Name.glb${cb}`,                                                                'gltf', (resource) =>
+                {
+                    resource.scene.traverse((child) =>
+                    {
+                        if(!child.isMesh || !child.material)
+                            return
+
+                        const materials = Array.isArray(child.material) ? child.material : [ child.material ]
+
+                        for(const material of materials)
+                        {
+                            for(const mapName of [ 'map', 'metalnessMap', 'roughnessMap', 'normalMap', 'emissiveMap' ])
+                            {
+                                const map = material[mapName]
+
+                                if(map)
+                                    map.colorSpace = mapName === 'map' || mapName === 'emissiveMap'
+                                        ? THREE.SRGBColorSpace
+                                        : THREE.NoColorSpace
+                            }
+                        }
+                    })
+                } ],
                 [ 'pyramid',                               `props/pyramid${compressedModelSuffix}.glb${cb}`,                                     'gltf' ],
+                [ 'retroMountain',                         `props/RetroMountain.glb${cb}`,                                                       'gltf' ],
                 [ 'retrowaveCarRemake',                    `props/retrowaveCarRemake${compressedModelSuffix}.glb${cb}`,                          'gltf' ],
             ],
             (toLoad, total) =>

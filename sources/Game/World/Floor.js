@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { Game } from '../Game.js'
-import { color, float, Fn, materialNormal, min, mix, mul, normalWorld, positionLocal, positionWorld, texture, uniform, uv, vec3, vec4 } from 'three/tsl'
+import { Fn, min, positionLocal, positionWorld, uv, vec3 } from 'three/tsl'
 import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
 
 export class Floor
@@ -42,29 +42,11 @@ export class Floor
         geometry.rotateX(-Math.PI * 0.5)
         geometry.deleteAttribute('normal')
 
-        // Terrain data
         const terrainData = this.game.terrain.terrainNode(positionWorld.xz)
-        const slabHighColor = uniform(color('#ffb646'))
-        const slabLowColor = uniform(color('#7c3aed'))
-        const slabTextureFrequency = uniform(0.175)
-        const slabNoiseFrequency = uniform(0.03)
-        const colorNode = Fn(() =>
-        {
-            const baseColor = this.game.terrain.colorNode(terrainData)
-            
-            const slabTerrain = terrainData.r
-            const slabNoiseUv = positionWorld.xz.mul(slabNoiseFrequency)
-            const slabNoise = texture(this.game.noises.perlin, slabNoiseUv).r
-            const slabsTexture = texture(this.game.resources.floorSlabsTexture, positionWorld.xz.mul(slabTextureFrequency)).r
-            const slabColor = mix(slabLowColor, slabHighColor, slabsTexture)
-            // return vec3(slabsTexture.mul(slabStrength))
 
-            const slab = slabTerrain.mul(slabNoise)
-            // return vec3(slab)
-            
-            const finalColor = mix(baseColor, slabColor, slab)
-            return finalColor
-        })()
+        // Use the terrain's blended color so water zones keep the water gradient
+        // (the floor texture is only mixed in over land inside colorNode).
+        const colorNode = this.game.terrain.colorNode(terrainData, positionWorld.xz)
 
         // Material
         const material = new MeshDefaultMaterial({
@@ -108,12 +90,10 @@ export class Floor
             this.mesh.geometry = geometry
         }, 2)
 
-        if(this.game.debug.active)
+        if(this.game.debug.active && this.game.terrain.floorTileScale)
         {
-            this.debugPanel.addBinding(slabTextureFrequency, 'value', { label: 'slabTextureFrequency', min: 0, max: 1, step: 0.001 })
-            this.debugPanel.addBinding(slabNoiseFrequency, 'value', { label: 'slabNoiseFrequency', min: 0, max: 0.1, step: 0.001 })
-            this.game.debug.addThreeColorBinding(this.debugPanel, slabHighColor.value, 'slabHighColor')
-            this.game.debug.addThreeColorBinding(this.debugPanel, slabLowColor.value, 'slabLowColor')
+            this.debugPanel.addBinding(this.game.terrain.floorTileScale.value, 'x', { label: 'floorTileScaleX', min: 0.01, max: 2, step: 0.01 })
+            this.debugPanel.addBinding(this.game.terrain.floorTileScale.value, 'y', { label: 'floorTileScaleY', min: 0.01, max: 2, step: 0.01 })
         }
     }
 
