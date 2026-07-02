@@ -159,6 +159,12 @@ export class Player
                 volume: 0,
                 onPlaying: (item) =>
                 {
+                    if(this.game.physicalVehicle.locomotion === 'walk')
+                    {
+                        item.volume = 0
+                        return
+                    }
+
                     const accelerating = Math.abs(this.game.player.accelerating) * 0.5
                     const boosting = this.game.player.boosting + 1
                     const volume = Math.max(0.05, accelerating * boosting * 0.8)
@@ -180,6 +186,14 @@ export class Player
                 volume: 0,
                 onPlaying: (item) =>
                 {
+                    if(this.game.physicalVehicle.locomotion === 'walk')
+                    {
+                        const steps = clamp(this.game.physicalVehicle.xzSpeed * 0.15, 0, 0.35)
+                        item.volume += (steps - item.volume) * this.game.ticker.deltaScaled * 8
+                        item.rate = 0.85 + steps
+                        return
+                    }
+
                     const speedEffect = clamp(this.game.physicalVehicle.xzSpeed * 0.1, 0, 1)
                     const volume = speedEffect * 0.3
                     const delta = volume - item.volume
@@ -201,6 +215,12 @@ export class Player
             volume: 0,
             onPlaying: (item) =>
             {
+                if(this.game.physicalVehicle.locomotion === 'walk')
+                {
+                    item.volume = 0
+                    return
+                }
+
                 const accelerating = 0.5 + Math.abs(this.game.player.accelerating) * 0.5
                 const boosting = this.game.player.boosting
                 const volume = accelerating * boosting * 0.3
@@ -543,6 +563,9 @@ export class Player
          */
         if(this.game.inputs.actions.get('boost').active)
             this.boosting = 1
+
+        if(this.game.physicalVehicle.locomotion === 'walk')
+            this.boosting = 0
 
         /**
          * Braking

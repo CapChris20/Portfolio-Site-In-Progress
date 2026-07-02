@@ -198,6 +198,8 @@ export class Menu
         if(sound)
             sound.play(true)
 
+        this.game.audio.groups.get('uiDing')?.play()
+
         // Leaving item
         if(this.current)
         {

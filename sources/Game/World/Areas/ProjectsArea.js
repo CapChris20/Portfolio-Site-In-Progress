@@ -475,7 +475,7 @@ export class ProjectsArea extends Area
         // Get resource and load
         this.images.getResourceAndLoad = (key) =>
         {
-            const path = `projects/images/${key}?v=4`
+            const path = `projects/images/${key}?v=5`
             
             // Try to retrieve resource
             let resource = this.images.resources.get(key)
@@ -496,8 +496,11 @@ export class ProjectsArea extends Area
                         loadedTexture.colorSpace = THREE.SRGBColorSpace
                         loadedTexture.flipY = false
                         loadedTexture.magFilter = THREE.LinearFilter
-                        loadedTexture.minFilter = THREE.LinearFilter
-                        loadedTexture.generateMipmaps = false
+                        loadedTexture.minFilter = THREE.LinearMipmapLinearFilter
+                        loadedTexture.generateMipmaps = true
+
+                        const maxAnisotropy = this.game.rendering?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 8
+                        loadedTexture.anisotropy = maxAnisotropy
 
                         resource.loaded = true
                         

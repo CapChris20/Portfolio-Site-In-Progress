@@ -10,6 +10,10 @@ import { alea } from 'seedrandom'
 import { InputFlag } from '../../InputFlag.js'
 import { Area } from './Area.js'
 import { timeToRaceString, timeToReadableString } from '../../utilities/time.js'
+import { applyVehicleStyleMaterials, createGroundedPropVisual } from '../PropVisual.js'
+import { attachStatuePhysics } from '../StaticProp.js'
+
+const CIRCUIT_MECHA_LENGTH = 7.5
 
 export class CircuitArea extends Area
 {
@@ -578,6 +582,60 @@ export class CircuitArea extends Area
         this.rails.deactivate()
     }
 
+    setMechaStatueAtLeaderboard()
+    {
+        const source = this.game.resources.mechaVehicle?.scene
+
+        if(!source)
+        {
+            console.warn('CircuitArea: mechaVehicle resource missing')
+            return
+        }
+
+        if(this.mecha)
+            this.mecha.removeFromParent()
+
+        const leaderboardRef = this.references.items.get('leaderboard')?.[0]
+
+        if(!leaderboardRef)
+            return
+
+        const point = new THREE.Vector3()
+        leaderboardRef.getWorldPosition(point)
+        point.y = 0
+
+        const visual = createGroundedPropVisual(source, CIRCUIT_MECHA_LENGTH, {
+            materialPrefix: 'circuitMecha',
+        })
+
+        visual.rotation.y = Math.PI * 0.5
+        applyVehicleStyleMaterials(visual, { polished: true, materialNamePrefix: 'circuitMecha' })
+
+        const group = new THREE.Group()
+        group.name = 'circuitMechaStatue'
+        group.position.copy(point)
+
+        const respawn = this.game.respawns.getByName('circuit')?.position
+
+        if(respawn)
+        {
+            const dx = respawn.x - point.x
+            const dz = respawn.z - point.z
+            group.rotation.y = Math.atan2(dx, dz)
+        }
+
+        group.add(visual)
+        this.game.scene.add(group)
+        this.objects.hideable.push(group)
+
+        attachStatuePhysics(group, CIRCUIT_MECHA_LENGTH, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
+
+        this.mecha = group
+    }
+
     setInteractivePoint()
     {
         this.interactivePoint = this.game.interactivePoints.create(
@@ -791,134 +849,20 @@ export class CircuitArea extends Area
         this.leaderboard = {}
         this.leaderboard.maxTime = 0
         this.leaderboard.scores = null
-        const resolution = 512
 
-        // Canvas
-        const font = `700 ${resolution / 14}px "Nunito"`
+        const leaderboardMesh = this.references.items.get('leaderboard')?.[0]
+        const resetMesh = this.references.items.get('leaderboardReset')?.[0]
 
-        const canvas = document.createElement('canvas')
-        canvas.style.position = 'fixed'
-        canvas.style.zIndex = 999
-        canvas.style.top = 0
-        canvas.style.left = 0
-        // document.body.append(canvas)
+        if(leaderboardMesh)
+            leaderboardMesh.visible = false
 
-        const context = canvas.getContext('2d')
-        context.font = font
+        if(resetMesh)
+            resetMesh.visible = false
 
-        canvas.width = resolution
-        canvas.height = resolution
+        this.setMechaStatueAtLeaderboard()
 
-        // Texture
-        const textTexture = new THREE.Texture(canvas)
-        textTexture.minFilter = THREE.LinearFilter
-        textTexture.magFilter = THREE.LinearFilter
-        textTexture.colorSpace = THREE.SRGBColorSpace
-        textTexture.generateMipmaps = false
-
-        // Digits
-        // const geometry = new THREE.PlaneGeometry(this.timer.digits.ratio, 1)
-
-        const material = new MeshDefaultMaterial({
-            colorNode: color('#463F35'),
-            hasWater: false,
-        })
-        
-        const baseOutput = material.outputNode
-        
-        material.outputNode = Fn(() =>
-        {
-            const text = texture(textTexture, uv(1))
-
-            return vec4(
-                mix(
-                    baseOutput.rgb,
-                    text.rgb.mul(1.3),
-                    text.a
-                ),
-                baseOutput.a
-            )
-        })()
-
-        const mesh = this.references.items.get('leaderboard')[0]
-        mesh.material = material
-
-        const columsSettings = [
-            { align: 'right', x: resolution * 0.125 },
-            { x: resolution * 0.19},
-            { align: 'center', x: resolution * 0.43},
-            { align: 'left', x: resolution * 0.725 },
-        ]
-        const interline = resolution / 12
-
-        const loadedFlags = new Map()
-        const flagsWidth = 54
-        const flagsHeight = 36
         this.leaderboard.update = (scores = null) =>
         {
-            const draw = () =>
-            {
-                // Clear
-                context.clearRect(0, 0, canvas.width, canvas.height)
-
-                if(scores === null)
-                {
-                    context.font = font
-                    context.fillStyle = '#ff87a2'
-                    context.textBaseline = 'middle'
-                    context.textAlign = 'center'
-                    context.fillText('OFFLINE', resolution * 0.5, resolution * 0.5)
-                }
-                else if(scores.length === 0)
-                {
-                    context.font = font
-                    context.fillStyle = '#ffffff'
-                    context.textBaseline = 'middle'
-                    context.textAlign = 'center'
-                    context.fillText('NO SCORE YET TODAY', resolution * 0.5, resolution * 0.5)
-                }
-                else
-                {
-                    context.font = font
-                    context.fillStyle = '#ffffff'
-                    context.textBaseline = 'middle'
-
-                    let rank = 1
-                    for(const score of scores)
-                    {
-                        context.textAlign = columsSettings[0].align
-                        context.fillText(rank, columsSettings[0].x, (rank + 0.5) * interline)
-
-                        const image = loadedFlags.get(score[1])
-
-                        if(image)
-                            context.drawImage(
-                                image,
-                                columsSettings[1].x,
-                                (rank + 0.4) * interline - flagsHeight / 2,
-                                flagsWidth,
-                                flagsHeight
-                            )
-
-                        context.textAlign = columsSettings[2].align
-                        context.fillText(score[0], columsSettings[2].x, (rank + 0.5) * interline)
-
-                        context.textAlign = columsSettings[2].align
-                        context.fillText(timeToRaceString(score[2] / 1000), columsSettings[3].x, (rank + 0.5) * interline)
-
-                        rank++
-                    }
-                }
-                textTexture.needsUpdate = true
-            }
-            const testFlagsLoaded = () =>
-            {
-                if(flagsToLoad === 0)
-                    draw()
-            }
-
-            let flagsToLoad = 0
-
             this.leaderboard.maxTime = 0
             this.leaderboard.scores = scores
 
@@ -926,51 +870,13 @@ export class CircuitArea extends Area
             {
                 for(const score of scores)
                 {
-                    const countryCode = score[1]
-                    if(countryCode)
-                    {                    
-                        const country = this.menu.inputFlag.countries.get(countryCode)
-
-                        if(country)
-                        {
-                            if(!loadedFlags.has(countryCode))
-                            {
-                                const image = new Image()
-                                image.onload = () =>
-                                {
-                                    flagsToLoad--
-                                    testFlagsLoaded()
-                                }
-                                image.src = country.imageUrl
-
-                                loadedFlags.set(countryCode, image)
-
-                                flagsToLoad++
-                            }
-                        }
-                    }
-
                     if(score[2] > this.leaderboard.maxTime)
                         this.leaderboard.maxTime = score[2]
                 }
             }
-
-            testFlagsLoaded()
         }
 
         this.leaderboard.update(null)
-        // this.leaderboard.update([
-        //     [ 'BRU', '00:25:150' ],
-        //     [ 'TTU', '00:27:153' ],
-        //     [ 'ORS', '00:27:002' ],
-        //     [ 'BAB', '00:29:193' ],
-        //     [ 'YOH', '00:30:159' ],
-        //     [ 'PUH', '00:37:103' ],
-        //     [ 'WWW', '00:40:253' ],
-        //     [ 'PWT', '00:41:315' ],
-        //     [ 'PRT', '00:45:035' ],
-        //     [ 'BOO', '00:49:531' ],
-        // ])
     }
 
     setResetTime()
@@ -1029,8 +935,13 @@ export class CircuitArea extends Area
             )
         })()
 
-        const mesh = this.references.items.get('leaderboardReset')[0]
-        mesh.material = material
+        const mesh = this.references.items.get('leaderboardReset')?.[0]
+
+        if(mesh)
+        {
+            mesh.visible = false
+            mesh.material = material
+        }
 
         this.resetTime.activate = (resetTime = 0) =>
         {

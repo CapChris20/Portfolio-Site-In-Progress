@@ -51,6 +51,7 @@ export class Map
             { name: 'Altar', respawnName: 'altar', offset: { x: 0, y: -0.05 } },
             { name: 'Bowling', respawnName: 'bowling', offset: { x: -0.08, y: 0.03 } },
             { name: 'Circuit', respawnName: 'circuit', offset: { x: -0.08, y: -0.05 } },
+            { name: 'Garage', respawnName: 'garage', offset: { x: -0.01, y: 0.02 } },
             { name: 'Cookie', respawnName: 'cookie', offset: { x: -0.02, y: -0.01 } },
         ]
 

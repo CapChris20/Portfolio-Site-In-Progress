@@ -12,7 +12,7 @@ import { Lightnings } from './Lightnings.js'
 import { Snow } from './Snow.js'
 import { Whispers } from './Whispers.js'
 import { VisualVehicle } from './VisualVehicle.js'
-import { CustomVisualVehicle } from './CustomVisualVehicle.js'
+import { VehicleGarage } from '../VehicleGarage.js'
 import { VisualTornado } from './VisualTornado.js'
 import { Flowers } from './Flowers.js'
 import { Bricks } from './Bricks.js'
@@ -57,10 +57,7 @@ export class World
         }
         else if(step === 1)
         {
-            if(this.game.vehicleMode === 'custom')
-                this.visualVehicle = new CustomVisualVehicle(this.game.resources.customVehicle.scene)
-            else
-                this.visualVehicle = new VisualVehicle(this.game.resources.vehicle.scene)
+            this.game.vehicleGarage.mount()
             this.floor = new Floor()
             this.waterSurface = new WaterSurface()
             this.grass = new Grass()
@@ -74,8 +71,8 @@ export class World
             this.visualTornado = new VisualTornado()
             this.bushes = new Bushes()
             const palmVisual = this.game.resources.palmTreesVisualModel.scene
-            const palmColorA = '#2a5c2e'
-            const palmColorB = '#5fa84f'
+            const palmColorA = '#602060'
+            const palmColorB = '#ff50a0'
             const palmReferences = filterReferencesNearEntranceStatue([
                 ...this.game.resources.birchTreesReferencesModel.scene.children,
                 ...this.game.resources.oakTreesReferencesModel.scene.children,

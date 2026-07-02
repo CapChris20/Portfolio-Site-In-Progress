@@ -51,6 +51,8 @@ import { CareerModal } from './CareerModal.js'
 import gsap from 'gsap'
 import { Map } from './Map.js'
 import { extractGlbColorMap } from './World/extractGlbColorMap.js'
+import { VehicleGarage } from './VehicleGarage.js'
+import { GarageModal } from './GarageModal.js'
 
 export class Game
 {
@@ -153,6 +155,8 @@ export class Game
                 [ 'bushesReferences',                      `bushes/bushesReferences${compressedModelSuffix}.glb${cb}`,                           'gltf' ],
                 [ 'vehicle',                               `vehicle/default${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'customVehicle',                         `vehicle/lightningMcqueen.glb${cb}`,                                                'gltf' ],
+                [ 'motorcycleVehicle',                     `props/LionMotorcycle.glb${cb}`,                                                    'gltf' ],
+                [ 'mechaVehicle',                          `props/Mecha.glb${cb}`,                                                             'gltf' ],
                 [ 'retrowaveCar',                          `props/retrowaveCar${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
                 [ 'playgroundVisual',                      `playground/playgroundVisual${compressedModelSuffix}.glb${cb}`,                       'gltf' ],
                 [ 'playgroundPhysical',                    `playground/playgroundPhysical${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
@@ -271,6 +275,8 @@ export class Game
         this.physics = new Physics()
         this.wireframe = new PhysicsWireframe()
         this.physicalVehicle = new PhysicsVehicle()
+        this.vehicleGarage = new VehicleGarage()
+        this.garageModal = new GarageModal()
         this.zones = new Zones()
         this.player = new Player()
         this.closingManager = new ClosingManager()

@@ -64,7 +64,7 @@ const categories = [
         skills: [
             { file: 'stripe', slug: 'stripe', label: 'Stripe API', color: '635BFF' },
             { file: 'imdb', slug: 'imdb', label: 'IMDb API', color: 'F5C518' },
-            { file: 'claude', slug: 'anthropic', label: 'Claude API', color: 'D4A574' },
+            { file: 'claude', label: 'Claude API', localPath: 'static/props/Claude.png' },
         ],
     },
 ]
@@ -76,7 +76,7 @@ async function saveNormalizedPng(source, iconPath)
     try
     {
         await sharp(source)
-            .resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .png()
             .toFile(iconPath)
         return
@@ -88,7 +88,7 @@ async function saveNormalizedPng(source, iconPath)
 
         await execFileAsync('magick', [
             Buffer.isBuffer(source) ? tempPath : source,
-            '-resize', '256x256',
+            '-resize', '512x512',
             iconPath,
         ])
 
@@ -100,6 +100,18 @@ async function saveNormalizedPng(source, iconPath)
 async function loadIcon(skill)
 {
     const iconPath = path.join(iconsDir, `${skill.file}.png`)
+
+    if(skill.localPath)
+    {
+        const sourcePath = path.join(__dirname, '..', skill.localPath)
+
+        if(!fs.existsSync(sourcePath))
+            throw new Error(`Missing local icon for ${skill.label}: ${sourcePath}`)
+
+        await saveNormalizedPng(sourcePath, iconPath)
+        console.log(`  synced ${skill.label} from ${skill.localPath}`)
+        return iconPath
+    }
 
     if(fs.existsSync(iconPath) && fs.statSync(iconPath).size > 0)
     {
@@ -168,9 +180,9 @@ function resolveFontPath()
 
 async function buildCategory(category)
 {
-    const iconSize = 180
-    const cellW = 340
-    const cellH = 280
+    const iconSize = 300
+    const cellW = 380
+    const cellH = 320
     const cols = Math.min(category.skills.length, 5)
     const rows = Math.ceil(category.skills.length / cols)
     const gridW = cols * cellW
@@ -215,7 +227,7 @@ async function buildCategory(category)
     const annotateArgs = [
         tempOutput,
         '-font', resolveFontPath(),
-        '-pointsize', '38',
+        '-pointsize', '42',
         '-fill', '#f8fafc',
         '-stroke', '#14002a',
         '-strokewidth', '2',

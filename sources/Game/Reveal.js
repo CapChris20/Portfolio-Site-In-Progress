@@ -320,6 +320,8 @@ export class Reveal
             started = true
             cleanup()
 
+            this.game.audio.playGameStart()
+
             this.heroMotorcycle?.destroy()
             this.heroMotorcycle = null
 
@@ -370,6 +372,10 @@ export class Reveal
         this.game.inputs.events.on('heroStart', onHeroStart)
         this.heroElement.addEventListener('pointerdown', onPointer)
         this.heroStart?.addEventListener('click', onPointer)
+        this.heroStart?.addEventListener('mouseenter', () =>
+        {
+            this.game.audio.playUISound('uiDing')
+        })
 
         this.heroLoader?.classList.add('is-hidden')
         this.heroProgressTrack?.classList.add('is-hidden')
@@ -380,6 +386,8 @@ export class Reveal
     {
         this.distance.value = 99999
         this.game.audio.init()
+        this.sound.play()
+        this.game.audio.groups.get('uiWhoosh')?.play()
 
         const intro = this.game.world.intro
 

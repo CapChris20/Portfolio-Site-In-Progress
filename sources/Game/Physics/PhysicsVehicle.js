@@ -20,6 +20,9 @@ export class PhysicsVehicle
         this.idleBrake = 0.06
         this.reverseBrake = 0.4
 
+        this.locomotion = 'drive'
+        this.walkTurnSpeed = 3.5
+        this.walkAcceleration = 14
         this.sideward = new THREE.Vector3(0, 0, 1)
         this.upward = new THREE.Vector3(0, 1, 0)
         this.forward = new THREE.Vector3(1, 0, 0)
@@ -456,6 +459,12 @@ export class PhysicsVehicle
 
     updatePrePhysics()
     {
+        if(this.locomotion === 'walk')
+        {
+            this.updateWalkPrePhysics()
+            return
+        }
+
         // Engine force
         const topSpeed = lerp(this.topSpeed, this.topSpeedBoost, this.game.player.boosting)
         const overflowSpeed = Math.max(0, this.speed - topSpeed)
@@ -510,6 +519,56 @@ export class PhysicsVehicle
         // Update controller
         const delta = this.game.quality.level === 1 ? 1/60 : Math.min(1/60, this.game.ticker.deltaAverage)
         this.controller.updateVehicle(delta)
+    }
+
+    updateWalkPrePhysics()
+    {
+        const delta = this.game.quality.level === 1 ? 1 / 60 : Math.min(1 / 60, this.game.ticker.deltaAverage)
+        const body = this.chassis.physical.body
+        const player = this.game.player
+
+        for(let i = 0; i < 4; i++)
+        {
+            this.controller.setWheelSteering(i, 0)
+            this.controller.setWheelBrake(i, 2000)
+            this.controller.setWheelEngineForce(i, 0)
+            this.controller.setWheelSuspensionRestLength(i, 0.55)
+            this.controller.setWheelSuspensionStiffness(i, 80)
+            this.controller.setWheelFrictionSlip(i, 0.01)
+        }
+
+        this.controller.updateVehicle(delta)
+
+        const mass = this.chassis.mass
+        const steer = player.steering * this.steeringAmplitude
+
+        if(Math.abs(steer) > 0.02)
+            body.applyTorqueImpulse({ x: 0, y: steer * this.walkTurnSpeed * mass, z: 0 }, true)
+
+        const rotation = body.rotation()
+        const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
+        const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ')
+        const upright = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0))
+        const blended = new THREE.Quaternion().copy(quaternion).slerp(upright, Math.min(1, delta * 22))
+        body.setRotation({ x: blended.x, y: blended.y, z: blended.z, w: blended.w })
+
+        const angvel = body.angvel()
+        body.setAngvel({ x: angvel.x * 0.2, y: angvel.y, z: angvel.z * 0.2 })
+
+        const forward = new THREE.Vector3(1, 0, 0).applyQuaternion(blended)
+        const linvel = body.linvel()
+        const input = player.braking ? 0 : player.accelerating
+        const targetSpeed = input * this.topSpeed
+        const blend = Math.min(1, this.walkAcceleration * delta)
+        const desiredX = forward.x * targetSpeed
+        const desiredZ = forward.z * targetSpeed
+        const coast = input === 0 ? 0.72 : 1
+
+        body.setLinvel({
+            x: (linvel.x + (desiredX - linvel.x) * blend) * coast,
+            y: linvel.y,
+            z: (linvel.z + (desiredZ - linvel.z) * blend) * coast,
+        })
     }
 
     updatePostPhysics()
@@ -569,6 +628,9 @@ export class PhysicsVehicle
 
         this.wheels.inContactCount = inContactCount
         this.wheels.justTouchedCount = justTouchedCount
+
+        if(this.locomotion === 'walk')
+            return
 
         this.stop.test()
         this.upsideDown.test()

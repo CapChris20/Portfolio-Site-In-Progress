@@ -472,6 +472,12 @@ export class LandingArea extends Area
         this.game.materials.applyObjectMaterials(visual, { useCache: false })
         group.add(visual)
         this.game.scene.add(group)
+
+        attachStatuePhysics(group, CONTROLS_GAMEBOY_LENGTH, {
+            position: group.position,
+            rotation: group.quaternion,
+        })
+
         this.objects.hideable.push(group)
 
         this.controlsGameboy = group

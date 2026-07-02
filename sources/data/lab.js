@@ -1,7 +1,7 @@
 export default [
     {
         title: 'Retronix Wallpapers',
-        description: 'Subscription wallpaper site — 600+ 4K retro and vaporwave static and live wallpapers. React 19, Vite, Firebase Auth, Stripe.',
+        description: 'Subscription wallpaper platform — 600+ 4K retro and vaporwave static and live wallpapers. React, Firebase, Stripe.',
         signColor: '#12082a',
         signAccent: '#ff3ea5',
         url: 'https://retronixwallpapers.com/',
@@ -10,7 +10,7 @@ export default [
     },
     {
         title: 'Vinyl Paradox',
-        description: 'TypeScript + Tailwind sequel to Midnight Vinyl. Kanye West, Travis Scott, and Tyler the Creator — iTunes previews, canvas visualizers, synthwave UI.',
+        description: 'Midnight Vinyl sequel in TypeScript — synthwave player for Kanye, Travis Scott, and Tyler with canvas visualizers.',
         signColor: '#1a1033',
         signAccent: '#b57dff',
         url: 'https://vinyl-paradox.netlify.app/',
@@ -19,7 +19,7 @@ export default [
     },
     {
         title: 'Midnight Vinyl',
-        description: 'Original vanilla JS music player — The Weeknd, Frank Ocean, and Michael Jackson. Web Audio visualizers, iTunes previews, cyberpunk neon UI.',
+        description: 'Vanilla JS cyberpunk music player — The Weeknd, Frank Ocean, and Michael Jackson with real-time audio visualizers.',
         signColor: '#0d1a33',
         signAccent: '#4fc3f7',
         url: 'https://midnight-vinyl-playe.web.app/',
@@ -28,7 +28,7 @@ export default [
     },
     {
         title: 'LivBakes',
-        description: 'Freelance macaron shop site for Olivia — HTML/CSS pages with Snipcart checkout, product catalog, and pink bakery branding.',
+        description: 'Freelance macaron e-commerce site for Olivia — product catalog, Snipcart checkout, responsive design.',
         signColor: '#2a1810',
         signAccent: '#ffb347',
         url: 'https://livbakes-official.netlify.app/',
@@ -37,7 +37,7 @@ export default [
     },
     {
         title: 'CineMood',
-        description: 'React mood movie picker — 8 vibes like Chill, Dreamy, and Hype. TMDB recommendations with cinematic video backgrounds.',
+        description: 'Pick your vibe, get a movie — 8 moods like Chill, Dreamy, and Hype with TMDB picks and video backgrounds.',
         signColor: '#1a0a28',
         signAccent: '#e040fb',
         url: 'https://cinemood-movie-picke.web.app/',
@@ -46,7 +46,7 @@ export default [
     },
     {
         title: 'CoachConnect',
-        description: 'Two-sided fitness SaaS where trainers manage clients and AI workouts while clients track progress with real-time coaching. Trainer CRM, AI workout generation, barcode nutrition, AI Coach with 15 tool actions. Live on iOS — Apple IAP, Stripe Connect, Firebase.',
+        description: 'Two-sided fitness SaaS — trainer CRM, AI workouts, barcode nutrition, and real-time coaching. Live on iOS.',
         signColor: '#0a1a28',
         signAccent: '#40c4ff',
         url: 'https://coachconnect.app/',
@@ -55,7 +55,7 @@ export default [
     },
     {
         title: 'Devora',
-        description: 'Tinder-style student networking for UM-Dearborn CECS — browse peer profiles, swipe to match, and connect for academic collaboration and project partnerships. Validated with 30-user survey (83% approval). Launching Fall 2026, full deployment Spring 2027.',
+        description: 'Tinder-style networking for UM-Dearborn CECS — swipe profiles, match, and connect for projects. 83% validated.',
         signColor: '#1a1035',
         signAccent: '#ff6ec7',
         image: 'devora.png',
@@ -63,7 +63,7 @@ export default [
     },
     {
         title: 'PlateDX',
-        description: 'Developer API for restaurant nutrition data from top 500 US chains — macro and micronutrient breakdowns, priced 10x cheaper than Nutritionix for indie developers. Freemium: 500 free calls/month, Starter $9.99, Pro $29.99.',
+        description: 'Nutrition API for developers — macro data from 500 US restaurant chains at 10x less than Nutritionix. Freemium tiers.',
         signColor: '#1a1508',
         signAccent: '#ffd54f',
         image: 'platedx.png',

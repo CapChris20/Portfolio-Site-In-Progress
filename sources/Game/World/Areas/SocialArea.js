@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Game } from '../../Game.js'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import socialData from '../../../data/social.js'
+import { GARAGE_WORLD_POSITION } from '../../VehicleGarage.js'
 import { Area } from './Area.js'
 import { View } from '../../View.js'
 import { createGroundedPropVisual } from '../PropVisual.js'
@@ -9,7 +10,7 @@ import { attachStatuePhysics } from '../StaticProp.js'
 
 // Props removed from the social area (3D clutter + unused platform icons)
 const SOCIAL_PROP_SKIP = /twitch|youtube|xPhysical|mail|bluesky|onlyfans|linkedIn/i
-const CENTER_STATUE_SKIP = /^Cube\.133$|^physicalFixed\.002$|^socialArrayReference$|^boyPhysicalDynamic$|^baguiraPhysicalDynamic$|^linkedInPhysicalDynamic$|^onlyfansPhysicalDynamic$/
+const CENTER_STATUE_SKIP = /^physicalFixed\.002$|^socialArrayReference$|^boyPhysicalDynamic$|^baguiraPhysicalDynamic$|^linkedInPhysicalDynamic$|^onlyfansPhysicalDynamic$/
 const CENTER_STATUE_RADIUS = 5
 const NEON_JESUS_HEIGHT = 8.5
 const NEON_JESUS_WIDTH_SCALE = 1.4
@@ -54,6 +55,7 @@ export class SocialArea extends Area
 
         this.setLinks()
         this.setStatue()
+        this.setVehicleGarage()
         // this.setFWA()
         this.setAchievement()
     }
@@ -328,6 +330,43 @@ export class SocialArea extends Area
         })
 
         this.centerStatue = group
+    }
+
+    setVehicleGarage()
+    {
+        const garagePosition = new THREE.Vector3(
+            GARAGE_WORLD_POSITION.x,
+            GARAGE_WORLD_POSITION.y,
+            GARAGE_WORLD_POSITION.z,
+        )
+
+        this.game.vehicleGarage.setParkingSpot(garagePosition, 0)
+
+        const interactPosition = garagePosition.clone()
+        interactPosition.y += 1.5
+
+        this.game.interactivePoints.create(
+            interactPosition,
+            'Garage',
+            InteractivePoints.ALIGN_RIGHT,
+            InteractivePoints.STATE_CONCEALED,
+            () =>
+            {
+                this.game.garageModal.open()
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.addItems(['interact'])
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.removeItems(['interact'])
+            },
+            () =>
+            {
+                this.game.inputs.interactiveButtons.removeItems(['interact'])
+            }
+        )
     }
 
     setFWA()

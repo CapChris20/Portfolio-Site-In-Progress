@@ -16,6 +16,7 @@ export class Audio
         this.events = new Events()
 
         this.setMute()
+        this.setUISounds()
 
         this.game.ticker.events.on('tick', () =>
         {
@@ -460,9 +461,15 @@ export class Audio
             {
                 const distanceToSide = Math.min(
                     this.game.terrain.size / 2 - Math.abs(this.game.player.position.x),
-                    this.game.terrain.size / 2 - Math.abs(this.game.player.position.z)
+                    this.game.terrain.size / 2 - Math.abs(this.game.player.position.z),
                 )
-                item.volume = Math.pow(remapClamp(distanceToSide, 0, 40, 1, 0.1), 2) * 0.7
+
+                const shoreProximity = Math.pow(remapClamp(distanceToSide, 0, 70, 1, 0.28), 1.15)
+
+                const waterDepth = this.game.water.surfaceElevation - this.game.player.position.y
+                const wading = remapClamp(waterDepth, -0.35, 1.1, 0, 1)
+
+                item.volume = Math.min(1, Math.max(0.28, shoreProximity * 1.9, wading * 1.55))
             }
         })
 
@@ -530,10 +537,54 @@ export class Audio
             group: 'click',
             path: 'sounds/mecanism/click.mp3',
             autoplay: false,
-            volume: 0.25,
+            volume: 0.34,
             onPlay: (item, isOpen = true) =>
             {
                 item.rate = isOpen ? 1 : 0.6
+            }
+        })
+
+        this.register({
+            group: 'uiDing',
+            path: 'sounds/ding/Cash Register 03.mp3',
+            autoplay: false,
+            volume: 0.24,
+            antiSpam: 0.08,
+            onPlay: (item) =>
+            {
+                item.rate = 1.05 + Math.random() * 0.08
+            }
+        })
+
+        this.register({
+            group: 'gameStart',
+            path: 'sounds/circuit/countdown/Game Start Countdown 31-2.mp3',
+            autoplay: false,
+            volume: 0.78,
+            antiSpam: 0.35,
+        })
+
+        this.register({
+            group: 'gameStartStinger',
+            path: 'sounds/swoosh/Swoosh 05.mp3',
+            autoplay: false,
+            volume: 0.42,
+            antiSpam: 0.2,
+            onPlay: (item) =>
+            {
+                item.rate = 1.08
+            }
+        })
+
+        this.register({
+            group: 'uiWhoosh',
+            path: 'sounds/swoosh/Swoosh 02.mp3',
+            autoplay: false,
+            volume: 0.28,
+            antiSpam: 0.12,
+            onPlay: (item) =>
+            {
+                item.rate = 0.95 + Math.random() * 0.1
             }
         })
 
@@ -633,6 +684,71 @@ export class Audio
                 })
             }
         }
+    }
+
+    setUISounds()
+    {
+        this.uiSounds = {
+            gameStart: new Howl({
+                src: [ 'sounds/circuit/countdown/Game Start Countdown 31-2.mp3' ],
+                volume: 0.78,
+                preload: true,
+            }),
+            gameStartStinger: new Howl({
+                src: [ 'sounds/swoosh/Swoosh 05.mp3' ],
+                volume: 0.42,
+                preload: true,
+                rate: 1.08,
+            }),
+            uiDing: new Howl({
+                src: [ 'sounds/ding/Cash Register 03.mp3' ],
+                volume: 0.22,
+                preload: true,
+            }),
+            uiWhoosh: new Howl({
+                src: [ 'sounds/swoosh/Swoosh 02.mp3' ],
+                volume: 0.28,
+                preload: true,
+            }),
+        }
+
+        this.uiLastPlay = {}
+    }
+
+    playUISound(name)
+    {
+        if(this.mute.active)
+            return
+
+        const sound = this.uiSounds?.[name]
+
+        if(!sound)
+            return
+
+        const now = performance.now()
+        const antiSpam = name === 'uiDing' ? 90 : 180
+
+        if(now - (this.uiLastPlay[name] ?? 0) < antiSpam)
+            return
+
+        this.uiLastPlay[name] = now
+        sound.play()
+    }
+
+    playGameStart()
+    {
+        if(this.mute.active)
+            return
+
+        if(this.initiated)
+        {
+            this.groups.get('gameStart')?.play()
+            gsap.delayedCall(0.07, () => this.groups.get('gameStartStinger')?.play())
+            return
+        }
+
+        this.playUISound('gameStart')
+        gsap.delayedCall(0.07, () => this.playUISound('gameStartStinger'))
     }
 
     setMute()

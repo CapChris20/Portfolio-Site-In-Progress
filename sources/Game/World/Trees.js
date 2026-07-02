@@ -2,7 +2,8 @@ import * as THREE from 'three/webgpu'
 import { Game } from '../Game.js'
 import { Foliage } from './Foliage.js'
 import { attachStatuePhysics } from './StaticProp.js'
-import { color, uniform } from 'three/tsl'
+import { MeshDefaultMaterial } from '../Materials/MeshDefaultMaterial.js'
+import { color, uniform, Fn, mix, texture, uv, luminance, normalWorld } from 'three/tsl'
 
 export class Trees
 {
@@ -58,6 +59,11 @@ export class Trees
         }
     }
 
+    isLeafMesh(mesh)
+    {
+        return mesh.name.toLowerCase().includes('leaves')
+    }
+
     prepareTreeMaterial(material)
     {
         if(!material?.isMeshLambertNodeMaterial)
@@ -68,6 +74,44 @@ export class Trees
         material.side = THREE.DoubleSide
 
         return material
+    }
+
+    prepareLeafMaterial(material)
+    {
+        const leavesColorANode = uniform(color(this.colorA))
+        const leavesColorBNode = uniform(color(this.colorB))
+        const map = material.map
+
+        const colorNode = Fn(() =>
+        {
+            const litMix = normalWorld.dot(this.game.lighting.directionUniform).smoothstep(0, 1)
+            let foliageColor = mix(leavesColorANode, leavesColorBNode, litMix)
+
+            if(map)
+            {
+                const texLuma = luminance(texture(map, uv()).rgb)
+                const shade = texLuma.div(0.35).clamp(0.55, 1.15)
+                foliageColor = foliageColor.mul(shade)
+            }
+
+            return foliageColor
+        })()
+
+        const result = new MeshDefaultMaterial({
+            colorNode,
+            hasReveal: false,
+            hasWater: false,
+        })
+
+        result.side = THREE.DoubleSide
+
+        if(this.game.debug.active)
+        {
+            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorANode.value, 'leavesColorA')
+            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorBNode.value, 'leavesColorB')
+        }
+
+        return result
     }
 
     setBodies()
@@ -93,7 +137,10 @@ export class Trees
             this.game.materials.updateObject(sourceMesh)
 
             const materials = Array.isArray(sourceMesh.material) ? sourceMesh.material : [ sourceMesh.material ]
-            const preparedMaterials = materials.map((material) => this.prepareTreeMaterial(material))
+            const prepareMaterial = this.isLeafMesh(sourceMesh)
+                ? (material) => this.prepareLeafMaterial(material)
+                : (material) => this.prepareTreeMaterial(material)
+            const preparedMaterials = materials.map(prepareMaterial)
 
             const body = new THREE.InstancedMesh(
                 sourceMesh.geometry,

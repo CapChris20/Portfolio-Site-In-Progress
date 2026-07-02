@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { Game } from './Game.js'
+import { GARAGE_SPAWN } from './VehicleGarage.js'
 
 export class Respawns
 {
@@ -35,6 +36,16 @@ export class Respawns
 
             this.items.set(name, item)
         }
+
+        this.items.set('garage', {
+            name: 'garage',
+            position: new THREE.Vector3(
+                GARAGE_SPAWN.x,
+                GARAGE_SPAWN.y,
+                GARAGE_SPAWN.z,
+            ),
+            rotation: GARAGE_SPAWN.rotation,
+        })
     }
 
     getByName(name)
