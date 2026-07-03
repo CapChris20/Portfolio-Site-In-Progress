@@ -19,6 +19,7 @@ export class Map
             if(!this.initiated)
                 this.init()
 
+            this.updateGaragePin()
             this.texture.update()
         })
     }
@@ -51,7 +52,7 @@ export class Map
             { name: 'Altar', respawnName: 'altar', offset: { x: 0, y: -0.05 } },
             { name: 'Bowling', respawnName: 'bowling', offset: { x: -0.08, y: 0.03 } },
             { name: 'Circuit', respawnName: 'circuit', offset: { x: -0.08, y: -0.05 } },
-            { name: 'Garage', respawnName: 'garage', offset: { x: -0.01, y: 0.02 } },
+            { name: 'Garage', respawnName: 'garage', offset: { x: 0, y: 0 } },
             { name: 'Cookie', respawnName: 'cookie', offset: { x: -0.02, y: -0.01 } },
         ]
 
@@ -85,7 +86,23 @@ export class Map
                 })
                 this.game.modals.close()
             })
+
+            if(item.respawnName === 'garage')
+                this.garageLocationElement = element
         }
+    }
+
+    updateGaragePin()
+    {
+        if(!this.garageLocationElement)
+            return
+
+        const pinPosition = this.game.vehicleGarage.getMapPinPosition()
+        const mapPosition = this.worldToMap(pinPosition)
+
+        this.garageLocationElement.style.left = `${mapPosition.x * 100}%`
+        this.garageLocationElement.style.top = `${mapPosition.y * 100}%`
+        this.garageLocationElement.style.zIndex = Math.round(mapPosition.y * 1000)
     }
     
     setPlayer()

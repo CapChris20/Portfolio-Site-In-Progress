@@ -168,7 +168,10 @@ export class Reveal
 
                 // Cherry trees
                 if(this.game.world.palmTrees?.leaves)
-                    this.game.world.palmTrees.leaves.seeThroughMultiplier = 0.5
+                {
+                    for(const leaves of [].concat(this.game.world.palmTrees.leaves))
+                        leaves.seeThroughMultiplier = 0.5
+                }
             })
         }
         else if(step === 1)
@@ -210,15 +213,18 @@ export class Reveal
             // Cherry trees
             if(this.game.world.palmTrees?.leaves)
             {
-                gsap.to(
-                    this.game.world.palmTrees.leaves,
-                    {
-                        seeThroughMultiplier: 1,
-                        ease: 'power1.inOut',
-                        duration: 2 / speedMultiplier,
-                        overwrite: true
-                    }
-                )
+                for(const leaves of [].concat(this.game.world.palmTrees.leaves))
+                {
+                    gsap.to(
+                        leaves,
+                        {
+                            seeThroughMultiplier: 1,
+                            ease: 'power1.inOut',
+                            duration: 2 / speedMultiplier,
+                            overwrite: true
+                        }
+                    )
+                }
             }
         }
         else if(step === 2)
@@ -414,7 +420,10 @@ export class Reveal
         this.game.view.zoom.smoothedRatio = 0
 
         if(this.game.world.palmTrees?.leaves)
-            this.game.world.palmTrees.leaves.seeThroughMultiplier = 1
+        {
+            for(const leaves of [].concat(this.game.world.palmTrees.leaves))
+                leaves.seeThroughMultiplier = 1
+        }
 
         this.updateStep(2)
     }

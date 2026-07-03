@@ -229,3 +229,96 @@ export function createGroundedPropVisual(sourceModel, targetLength = 4, options 
 
     return model
 }
+
+/**
+ * Garage materials — uses GarageWrap.png when provided, otherwise palm-pink tint.
+ */
+export function applyGarageStyleMaterials(object, options = {})
+{
+    const colorA = options.colorA ?? '#602060'
+    const colorB = options.colorB ?? '#ff50a0'
+    const materialPrefix = options.materialPrefix ?? 'garageBuilding'
+    const wrapTexture = options.wrapTexture ?? null
+    const game = Game.getInstance()
+    const leavesColorANode = uniform(color(colorA))
+    const leavesColorBNode = uniform(color(colorB))
+
+    if(wrapTexture)
+    {
+        wrapTexture.colorSpace = THREE.SRGBColorSpace
+
+        const capabilities = game.rendering?.renderer?.capabilities
+        const maxAnisotropy = typeof capabilities?.getMaxAnisotropy === 'function'
+            ? capabilities.getMaxAnisotropy()
+            : 8
+
+        wrapTexture.anisotropy = maxAnisotropy
+        wrapTexture.minFilter = THREE.LinearMipmapLinearFilter
+        wrapTexture.magFilter = THREE.LinearFilter
+        wrapTexture.generateMipmaps = true
+    }
+
+    object.traverse((child) =>
+    {
+        if(!child.isMesh || !child.material)
+            return
+
+        const convert = (sourceMaterial, index) =>
+        {
+            let colorNode
+
+            if(wrapTexture)
+            {
+                colorNode = Fn(() =>
+                {
+                    let paint = texture(wrapTexture, uv()).rgb.pow(0.96).mul(1.05)
+                    const litMix = normalWorld.dot(game.lighting.directionUniform).smoothstep(0, 1)
+                    paint = paint.mul(litMix.mul(0.3).add(0.78))
+                    return paint
+                })()
+            }
+            else
+            {
+                colorNode = Fn(() =>
+                {
+                    const litMix = normalWorld.dot(game.lighting.directionUniform).smoothstep(0, 1)
+                    let paint = mix(leavesColorANode, leavesColorBNode, litMix)
+
+                    if(sourceMaterial.map)
+                    {
+                        sourceMaterial.map.colorSpace = THREE.SRGBColorSpace
+                        const texLuma = luminance(texture(sourceMaterial.map, uv()).rgb)
+                        const shade = texLuma.div(0.38).clamp(0.5, 1.15)
+                        paint = paint.mul(shade)
+                    }
+
+                    return paint
+                })()
+            }
+
+            const material = new MeshDefaultMaterial({
+                colorNode,
+                hasFog: true,
+                hasReveal: false,
+                hasWater: false,
+                hasCoreShadows: true,
+                hasDropShadows: true,
+            })
+
+            if(wrapTexture)
+                material.map = wrapTexture
+            else if(sourceMaterial.map)
+                material.map = sourceMaterial.map
+
+            material.name = `${materialPrefix}_${sourceMaterial.name || 'surface'}_${index}`
+            material.shadowSide = THREE.BackSide
+
+            return material
+        }
+
+        if(Array.isArray(child.material))
+            child.material = child.material.map((material, index) => convert(material, index))
+        else
+            child.material = convert(child.material, 0)
+    })
+}

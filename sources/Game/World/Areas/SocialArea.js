@@ -340,10 +340,9 @@ export class SocialArea extends Area
             GARAGE_WORLD_POSITION.z,
         )
 
-        this.game.vehicleGarage.setParkingSpot(garagePosition, 0)
+        this.game.vehicleGarage.setGarageBuilding(garagePosition, Math.PI)
 
-        const interactPosition = garagePosition.clone()
-        interactPosition.y += 1.5
+        const interactPosition = this.game.vehicleGarage.getInteractPosition()
 
         this.game.interactivePoints.create(
             interactPosition,

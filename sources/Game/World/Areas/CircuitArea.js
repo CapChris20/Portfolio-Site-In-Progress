@@ -15,6 +15,44 @@ import { attachStatuePhysics } from '../StaticProp.js'
 
 const CIRCUIT_MECHA_LENGTH = 7.5
 
+// Former refLeaderboard world position (node removed from areas.glb).
+export const CIRCUIT_MECHA_POSITION = Object.freeze({
+    x: -19.639,
+    y: 0,
+    z: 16.416,
+})
+
+const CIRCUIT_LEADERBOARD_REMOVAL_NAMES = new Set([
+    'refLeaderboard',
+    'refLeaderboardReset',
+    'Text.002',
+    'Cube.088',
+    'refBanners.001',
+])
+
+function shouldRemoveCircuitLeaderboardMesh(name = '')
+{
+    if(!name)
+        return false
+
+    if(CIRCUIT_LEADERBOARD_REMOVAL_NAMES.has(name))
+        return true
+
+    if(/^refLeaderboard/i.test(name))
+        return true
+
+    if(/^Text\.002$/i.test(name))
+        return true
+
+    if(/^Cube\.088$/i.test(name))
+        return true
+
+    if(/^LEADERBOARD$/i.test(name))
+        return true
+
+    return false
+}
+
 export class CircuitArea extends Area
 {
     static STATE_PENDING = 1
@@ -25,6 +63,12 @@ export class CircuitArea extends Area
     constructor(model)
     {
         super(model)
+
+        this.circuitMechaPosition = new THREE.Vector3(
+            CIRCUIT_MECHA_POSITION.x,
+            CIRCUIT_MECHA_POSITION.y,
+            CIRCUIT_MECHA_POSITION.z,
+        )
 
         // Debug
         if(this.game.debug.active)
@@ -60,8 +104,63 @@ export class CircuitArea extends Area
         this.setData()
         this.setAchievement()
 
+        // Last pass — nothing else gets to resurrect the 3D leaderboard.
+        this.removeCircuitLeaderboardDisplay()
+
+        this.game.ticker.events.on('tick', () =>
+        {
+            this.enforceLeaderboardRemoval()
+        }, 8)
+
         this.game.materials.getFromName('circuitBrand').map.minFilter = THREE.LinearFilter
         this.game.materials.getFromName('circuitBrand').map.magFilter = THREE.LinearFilter
+    }
+
+    setObjects()
+    {
+        this.objects = {}
+        this.objects.items = []
+        this.objects.hideable = []
+
+        for(const child of [ ...this.model.children ])
+        {
+            if(shouldRemoveCircuitLeaderboardMesh(child.name))
+            {
+                child.removeFromParent()
+
+                if(child.geometry)
+                    child.geometry.dispose()
+
+                continue
+            }
+
+            if(typeof child.userData.preventAutoAdd === 'undefined' || child.userData.preventAutoAdd === false)
+            {
+                const object = this.game.objects.addFromModel(
+                    child,
+                    {},
+                    {
+                        position: child.position.add(this.model.position),
+                        rotation: child.quaternion,
+                        sleeping: true,
+                        mass: child.userData.mass,
+                    },
+                )
+
+                this.objects.items.push(object)
+
+                if(
+                    object.visual &&
+                    (!object.physical || object.physical?.type === 'fixed') &&
+                    (typeof child.userData.preventFrustum === 'undefined' || child.userData.preventFrustum === false)
+                )
+                {
+                    this.objects.hideable.push(object.visual.object3D)
+                }
+            }
+
+            this.references.parse(child)
+        }
     }
 
     setSounds()
@@ -582,6 +681,55 @@ export class CircuitArea extends Area
         this.rails.deactivate()
     }
 
+    enforceLeaderboardRemoval()
+    {
+        this.game.scene.traverse((child) =>
+        {
+            if(this.isLeaderboardProp(child))
+                this.disposeLeaderboardMesh(child)
+        })
+    }
+
+    isLeaderboardProp(object3D)
+    {
+        return shouldRemoveCircuitLeaderboardMesh(object3D?.name)
+    }
+
+    disposeLeaderboardMesh(object3D)
+    {
+        if(!object3D || !this.isLeaderboardProp(object3D) || object3D.userData.leaderboardDisposed)
+            return
+
+        object3D.userData.leaderboardDisposed = true
+
+        if(!this.leaderboardRemovedObjects)
+            this.leaderboardRemovedObjects = new Set()
+
+        this.leaderboardRemovedObjects.add(object3D)
+        object3D.visible = false
+        object3D.userData.permanentlyHidden = true
+        object3D.scale.set(0, 0, 0)
+        object3D.removeFromParent()
+
+        if(object3D.geometry)
+            object3D.geometry.dispose()
+    }
+
+    purgeLeaderboardFromObjectSystem()
+    {
+        for(const [ key, object ] of [ ...this.game.objects.list.entries() ])
+        {
+            const object3D = object.visual?.object3D
+
+            if(!this.isLeaderboardProp(object3D))
+                continue
+
+            this.game.objects.disable(object)
+            this.game.objects.list.delete(key)
+            this.disposeLeaderboardMesh(object3D)
+        }
+    }
+
     setMechaStatueAtLeaderboard()
     {
         const source = this.game.resources.mechaVehicle?.scene
@@ -595,14 +743,16 @@ export class CircuitArea extends Area
         if(this.mecha)
             this.mecha.removeFromParent()
 
-        const leaderboardRef = this.references.items.get('leaderboard')?.[0]
+        let point = this.circuitMechaPosition?.clone()
 
-        if(!leaderboardRef)
-            return
-
-        const point = new THREE.Vector3()
-        leaderboardRef.getWorldPosition(point)
-        point.y = 0
+        if(!point)
+        {
+            point = new THREE.Vector3(
+                CIRCUIT_MECHA_POSITION.x,
+                CIRCUIT_MECHA_POSITION.y,
+                CIRCUIT_MECHA_POSITION.z,
+            )
+        }
 
         const visual = createGroundedPropVisual(source, CIRCUIT_MECHA_LENGTH, {
             materialPrefix: 'circuitMecha',
@@ -615,13 +765,16 @@ export class CircuitArea extends Area
         group.name = 'circuitMechaStatue'
         group.position.copy(point)
 
-        const respawn = this.game.respawns.getByName('circuit')?.position
+        const faceRef = this.references.items.get('interactivePoint')?.[0]
+            ?? this.references.items.get('start')?.[0]
 
-        if(respawn)
+        if(faceRef)
         {
-            const dx = respawn.x - point.x
-            const dz = respawn.z - point.z
-            group.rotation.y = Math.atan2(dx, dz)
+            const facePoint = new THREE.Vector3()
+            faceRef.getWorldPosition(facePoint)
+            const dx = facePoint.x - point.x
+            const dz = facePoint.z - point.z
+            group.rotation.y = Math.atan2(dx, dz) + Math.PI
         }
 
         group.add(visual)
@@ -634,6 +787,50 @@ export class CircuitArea extends Area
         })
 
         this.mecha = group
+    }
+
+    removeCircuitLeaderboardDisplay()
+    {
+        this.purgeLeaderboardFromObjectSystem()
+
+        const hidden = this.leaderboardRemovedObjects ?? new Set()
+        this.leaderboardRemovedObjects = hidden
+
+        const dispose = (object3D) =>
+        {
+            if(!object3D)
+                return
+
+            this.disposeLeaderboardMesh(object3D)
+        }
+
+        dispose(this.references.items.get('leaderboard')?.[0])
+        dispose(this.references.items.get('leaderboardReset')?.[0])
+
+        this.model.traverse((child) =>
+        {
+            if(this.isLeaderboardProp(child))
+                dispose(child)
+        })
+
+        this.objects.items = this.objects.items.filter((object) =>
+        {
+            const object3D = object.visual?.object3D
+
+            if(!this.isLeaderboardProp(object3D))
+                return true
+
+            dispose(object3D)
+            return false
+        })
+
+        this.game.scene.traverse((child) =>
+        {
+            if(this.isLeaderboardProp(child))
+                dispose(child)
+        })
+
+        this.objects.hideable = this.objects.hideable.filter((object3D) => !object3D.userData?.permanentlyHidden)
     }
 
     setInteractivePoint()
@@ -850,15 +1047,7 @@ export class CircuitArea extends Area
         this.leaderboard.maxTime = 0
         this.leaderboard.scores = null
 
-        const leaderboardMesh = this.references.items.get('leaderboard')?.[0]
-        const resetMesh = this.references.items.get('leaderboardReset')?.[0]
-
-        if(leaderboardMesh)
-            leaderboardMesh.visible = false
-
-        if(resetMesh)
-            resetMesh.visible = false
-
+        this.removeCircuitLeaderboardDisplay()
         this.setMechaStatueAtLeaderboard()
 
         this.leaderboard.update = (scores = null) =>
@@ -935,14 +1124,6 @@ export class CircuitArea extends Area
             )
         })()
 
-        const mesh = this.references.items.get('leaderboardReset')?.[0]
-
-        if(mesh)
-        {
-            mesh.visible = false
-            mesh.material = material
-        }
-
         this.resetTime.activate = (resetTime = 0) =>
         {
             this.resetTime.isActive = true
@@ -975,7 +1156,7 @@ export class CircuitArea extends Area
                 this.resetTime.finalFormatedTime = formatedTime === '' ? 'now' : `in ${formatedTime}`
                 this.resetTime.draw(this.resetTime.finalFormatedTime)
 
-                if(this.menu.instance.isOpen)
+                if(this.menu.instance?.isOpen)
                     this.menu.resetTimeElement.textContent = this.resetTime.finalFormatedTime
             }
 

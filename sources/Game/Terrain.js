@@ -97,7 +97,8 @@ export class Terrain
 
     setNodes()
     {
-        this.grassColorUniform = uniform(color('#c084fc'))
+        this.grassColorA = uniform(color('#ff8500'))
+        this.grassColorB = uniform(color('#ff50a0'))
         this.tracksDelta = uniform(vec2(0))
 
         const worldPositionToUvNode = Fn(([position]) =>
@@ -135,14 +136,18 @@ export class Terrain
                 baseColor.assign(mix(baseColor, floorColor, landMix))
             }
 
-            baseColor.assign(mix(baseColor, this.grassColorUniform, terrainData.g))
+            const grassT = smoothstep(-65, 65, worldPosition.x.mul(0.55).add(worldPosition.y.mul(0.45)))
+            const grassColor = mix(this.grassColorA, this.grassColorB, grassT)
+
+            baseColor.assign(mix(baseColor, grassColor, terrainData.g))
 
             return baseColor.rgb
         })
 
         if(this.game.debug.active)
         {
-            this.game.debug.addThreeColorBinding(this.debugPanel, this.grassColorUniform.value, 'grassColor')
+            this.game.debug.addThreeColorBinding(this.debugPanel, this.grassColorA.value, 'grassColorA')
+            this.game.debug.addThreeColorBinding(this.debugPanel, this.grassColorB.value, 'grassColorB')
         }
     }
     

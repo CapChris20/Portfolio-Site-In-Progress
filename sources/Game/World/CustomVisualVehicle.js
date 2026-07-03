@@ -38,7 +38,10 @@ export class CustomVisualVehicle
 
     enhanceMaterials(object)
     {
-        applyVehicleStyleMaterials(object, { polished: true })
+        applyVehicleStyleMaterials(object, {
+            polished: true,
+            materialNamePrefix: this.options.materialNamePrefix ?? 'vehicle',
+        })
     }
 
     setChassis(sourceModel)

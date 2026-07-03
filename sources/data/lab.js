@@ -1,7 +1,7 @@
 export default [
     {
         title: 'Retronix Wallpapers',
-        description: 'Subscription wallpaper platform — 600+ 4K retro and vaporwave static and live wallpapers. React, Firebase, Stripe.',
+        description: 'My wallpaper startup — 600+ 4K retro and vaporwave wallpapers with Stripe subscriptions, Firebase auth, and weekly new drops.',
         signColor: '#12082a',
         signAccent: '#ff3ea5',
         url: 'https://retronixwallpapers.com/',
@@ -10,7 +10,7 @@ export default [
     },
     {
         title: 'Vinyl Paradox',
-        description: 'Midnight Vinyl sequel in TypeScript — synthwave player for Kanye, Travis Scott, and Tyler with canvas visualizers.',
+        description: 'Midnight Vinyl sequel — synthwave music player for Kanye, Travis Scott, and Tyler with iTunes previews, canvas visualizers, and a retro neon UI.',
         signColor: '#1a1033',
         signAccent: '#b57dff',
         url: 'https://vinyl-paradox.netlify.app/',
@@ -19,7 +19,7 @@ export default [
     },
     {
         title: 'Midnight Vinyl',
-        description: 'Vanilla JS cyberpunk music player — The Weeknd, Frank Ocean, and Michael Jackson with real-time audio visualizers.',
+        description: 'Cyberpunk music player in vanilla JS — The Weeknd, Frank Ocean, and Michael Jackson with Web Audio visualizations and iTunes song previews.',
         signColor: '#0d1a33',
         signAccent: '#4fc3f7',
         url: 'https://midnight-vinyl-playe.web.app/',
@@ -28,7 +28,7 @@ export default [
     },
     {
         title: 'LivBakes',
-        description: 'Freelance macaron e-commerce site for Olivia — product catalog, Snipcart checkout, responsive design.',
+        description: 'Freelance macaron shop for Olivia — multi-page storefront, 5-product catalog, Snipcart checkout, and a responsive pink-themed design.',
         signColor: '#2a1810',
         signAccent: '#ffb347',
         url: 'https://livbakes-official.netlify.app/',
@@ -37,7 +37,7 @@ export default [
     },
     {
         title: 'CineMood',
-        description: 'Pick your vibe, get a movie — 8 moods like Chill, Dreamy, and Hype with TMDB picks and video backgrounds.',
+        description: 'Mood-based movie picker — choose from 8 vibes (Chill, Dreamy, Hype, and more) and get shuffled TMDB recommendations with cinematic video backgrounds.',
         signColor: '#1a0a28',
         signAccent: '#e040fb',
         url: 'https://cinemood-movie-picke.web.app/',
@@ -46,7 +46,7 @@ export default [
     },
     {
         title: 'CoachConnect',
-        description: 'Two-sided fitness SaaS — trainer CRM, AI workouts, barcode nutrition, and real-time coaching. Live on iOS.',
+        description: 'Two-sided fitness app built around a trainer marketplace — clients find trainers with location and other filters, while clients and trainers anfdget management tools, nutrition logging, barcode scanning, AI coaching, progress tracking, workout planning, and a YouTube exercise library.',
         signColor: '#0a1a28',
         signAccent: '#40c4ff',
         url: 'https://coachconnect.app/',
@@ -55,7 +55,7 @@ export default [
     },
     {
         title: 'Devora',
-        description: 'Tinder-style networking for UM-Dearborn CECS — swipe profiles, match, and connect for projects. 83% validated.',
+        description: 'UM-Dearborn research project — Tinder-style web app for CECS students to find friends, project partners, or collaborators.',
         signColor: '#1a1035',
         signAccent: '#ff6ec7',
         image: 'devora.png',
@@ -63,7 +63,7 @@ export default [
     },
     {
         title: 'PlateDX',
-        description: 'Nutrition API for developers — macro data from 500 US restaurant chains at 10x less than Nutritionix. Freemium tiers.',
+        description: 'Cheap Nutritionix alternative — a developer nutrition API with macro data from the 500 most popular US restaurant chains, ready to plug into any fitness app you build.',
         signColor: '#1a1508',
         signAccent: '#ffd54f',
         image: 'platedx.png',

@@ -152,7 +152,12 @@ export class Area
                 if(this.frustum.isIn === false || this.frustum.isIn === null)
                 {
                     for(const object3D of this.objects.hideable)
+                    {
+                        if(object3D.userData?.permanentlyHidden)
+                            continue
+
                         object3D.visible = true
+                    }
 
                     if(typeof helper !== 'undefined')
                         helper.material.color.set('#44ff88').multiplyScalar(2)

@@ -29,6 +29,7 @@ import { Fences } from './Fences.js'
 import { Benches } from './Benches.js'
 import { Scenery } from './Scenery.js'
 import { WorldProps, filterReferencesNearEntranceStatue } from './WorldProps.js'
+import { RoamingAnimals } from './RoamingAnimals.js'
 
 export class World
 {
@@ -73,6 +74,8 @@ export class World
             const palmVisual = this.game.resources.palmTreesVisualModel.scene
             const palmColorA = '#602060'
             const palmColorB = '#ff50a0'
+            const palmGreenA = '#1a4d2e'
+            const palmGreenB = '#4ade80'
             const palmReferences = filterReferencesNearEntranceStatue([
                 ...this.game.resources.birchTreesReferencesModel.scene.children,
                 ...this.game.resources.oakTreesReferencesModel.scene.children,
@@ -81,7 +84,10 @@ export class World
 
             const foliagePlaneCount = 28
 
-            this.palmTrees = new Trees('Tree', palmVisual, palmReferences, palmColorA, palmColorB, foliagePlaneCount)
+            this.palmTrees = new Trees('Tree', palmVisual, palmReferences, palmColorA, palmColorB, foliagePlaneCount, {
+                alternateColorA: palmGreenA,
+                alternateColorB: palmGreenB,
+            })
             this.flowers = new Flowers()
             this.bricks = new Bricks()
             this.fences = new Fences()
@@ -91,6 +97,7 @@ export class World
             this.scenery = new Scenery()
             this.worldProps = new WorldProps()
             this.areas = new Areas()
+            this.roamingAnimals = new RoamingAnimals()
         }
         else if(step === 2)
         {

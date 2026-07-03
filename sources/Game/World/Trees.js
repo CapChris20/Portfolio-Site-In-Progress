@@ -7,7 +7,7 @@ import { color, uniform, Fn, mix, texture, uv, luminance, normalWorld } from 'th
 
 export class Trees
 {
-    constructor(name, visual, references, colorA, colorB, foliagePlaneCount = 48)
+    constructor(name, visual, references, colorA, colorB, foliagePlaneCount = 48, options = {})
     {
         this.game = Game.getInstance()
 
@@ -24,6 +24,8 @@ export class Trees
         this.references = references
         this.colorA = colorA
         this.colorB = colorB
+        this.alternateColorA = options.alternateColorA ?? null
+        this.alternateColorB = options.alternateColorB ?? null
         this.foliagePlaneCount = foliagePlaneCount
 
         this.setModelParts()
@@ -76,10 +78,10 @@ export class Trees
         return material
     }
 
-    prepareLeafMaterial(material)
+    prepareLeafMaterial(material, colorA, colorB, debugLabel = '')
     {
-        const leavesColorANode = uniform(color(this.colorA))
-        const leavesColorBNode = uniform(color(this.colorB))
+        const leavesColorANode = uniform(color(colorA))
+        const leavesColorBNode = uniform(color(colorB))
         const map = material.map
 
         const colorNode = Fn(() =>
@@ -107,11 +109,65 @@ export class Trees
 
         if(this.game.debug.active)
         {
-            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorANode.value, 'leavesColorA')
-            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorBNode.value, 'leavesColorB')
+            const suffix = debugLabel ? `_${debugLabel}` : ''
+            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorANode.value, `leavesColorA${suffix}`)
+            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorBNode.value, `leavesColorB${suffix}`)
         }
 
         return result
+    }
+
+    getReferenceGroups()
+    {
+        if(!this.alternateColorA || !this.alternateColorB || this.references.length < 2)
+        {
+            return [
+                { references: this.references, colorA: this.colorA, colorB: this.colorB, label: '' },
+            ]
+        }
+
+        const splitIndex = Math.ceil(this.references.length / 2)
+
+        return [
+            { references: this.references.slice(0, splitIndex), colorA: this.colorA, colorB: this.colorB, label: 'retro' },
+            { references: this.references.slice(splitIndex), colorA: this.alternateColorA, colorB: this.alternateColorB, label: 'green' },
+        ]
+    }
+
+    createInstancedBody(sourceMesh, treeReferences, prepareMaterial)
+    {
+        const materials = Array.isArray(sourceMesh.material) ? sourceMesh.material : [ sourceMesh.material ]
+        const preparedMaterials = materials.map(prepareMaterial)
+
+        const body = new THREE.InstancedMesh(
+            sourceMesh.geometry,
+            preparedMaterials.length > 1 ? preparedMaterials : preparedMaterials[0],
+            treeReferences.length,
+        )
+
+        body.name = `treeBodies_${sourceMesh.name}`
+        body.instanceMatrix.setUsage(THREE.StaticDrawUsage)
+        body.castShadow = true
+        body.receiveShadow = true
+        body.frustumCulled = false
+
+        sourceMesh.updateMatrixWorld(true)
+        const meshMatrix = sourceMesh.matrixWorld.clone()
+
+        let i = 0
+
+        for(const treeReference of treeReferences)
+        {
+            treeReference.updateMatrixWorld(true)
+            const instanceMatrix = meshMatrix.clone().premultiply(treeReference.matrixWorld)
+            body.setMatrixAt(i, instanceMatrix)
+            i++
+        }
+
+        body.instanceMatrix.needsUpdate = true
+        this.game.scene.add(body)
+
+        return body
     }
 
     setBodies()
@@ -136,40 +192,21 @@ export class Trees
         {
             this.game.materials.updateObject(sourceMesh)
 
-            const materials = Array.isArray(sourceMesh.material) ? sourceMesh.material : [ sourceMesh.material ]
-            const prepareMaterial = this.isLeafMesh(sourceMesh)
-                ? (material) => this.prepareLeafMaterial(material)
-                : (material) => this.prepareTreeMaterial(material)
-            const preparedMaterials = materials.map(prepareMaterial)
+            const isLeaf = this.isLeafMesh(sourceMesh)
 
-            const body = new THREE.InstancedMesh(
-                sourceMesh.geometry,
-                preparedMaterials.length > 1 ? preparedMaterials : preparedMaterials[0],
-                this.references.length,
-            )
-
-            body.name = `treeBodies_${sourceMesh.name}`
-            body.instanceMatrix.setUsage(THREE.StaticDrawUsage)
-            body.castShadow = true
-            body.receiveShadow = true
-            body.frustumCulled = false
-
-            sourceMesh.updateMatrixWorld(true)
-            const meshMatrix = sourceMesh.matrixWorld.clone()
-
-            let i = 0
-
-            for(const treeReference of this.references)
+            for(const group of this.getReferenceGroups())
             {
-                treeReference.updateMatrixWorld(true)
-                const instanceMatrix = meshMatrix.clone().premultiply(treeReference.matrixWorld)
-                body.setMatrixAt(i, instanceMatrix)
-                i++
-            }
+                const prepareMaterial = isLeaf
+                    ? (material) => this.prepareLeafMaterial(material, group.colorA, group.colorB, group.label)
+                    : (material) => this.prepareTreeMaterial(material)
 
-            body.instanceMatrix.needsUpdate = true
-            this.game.scene.add(body)
-            this.bodies.push(body)
+                const body = this.createInstancedBody(sourceMesh, group.references, prepareMaterial)
+
+                if(group.label)
+                    body.name = `${body.name}_${group.label}`
+
+                this.bodies.push(body)
+            }
         }
     }
 
@@ -181,34 +218,53 @@ export class Trees
 
         const references = []
 
-        for(const treeReference of this.references)
+        for(const group of this.getReferenceGroups())
         {
-            treeReference.updateMatrixWorld(true)
-
-            for(const leaves of this.modelParts.leaves)
+            for(const treeReference of group.references)
             {
-                leaves.updateMatrixWorld(true)
-                const finalMatrix = leaves.matrix.clone().premultiply(treeReference.matrixWorld)
-                const reference = new THREE.Object3D()
-                reference.applyMatrix4(finalMatrix)
+                treeReference.updateMatrixWorld(true)
 
-                references.push(reference)
+                for(const leaves of this.modelParts.leaves)
+                {
+                    leaves.updateMatrixWorld(true)
+                    const finalMatrix = leaves.matrix.clone().premultiply(treeReference.matrixWorld)
+                    const reference = new THREE.Object3D()
+                    reference.applyMatrix4(finalMatrix)
+                    reference.userData.leafColorA = group.colorA
+                    reference.userData.leafColorB = group.colorB
+                    reference.userData.leafLabel = group.label
+
+                    references.push(reference)
+                }
             }
         }
 
-        const leavesColorANode = uniform(color(this.colorA))
-        const leavesColorBNode = uniform(color(this.colorB))
-        this.leaves = new Foliage(references, leavesColorANode, leavesColorBNode, true, this.foliagePlaneCount)
+        // Legacy billboard palms — one Foliage per color group.
+        this.leaves = []
 
-        // Debug
-        if(this.game.debug.active)
+        for(const group of this.getReferenceGroups())
         {
-            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorANode.value, 'leavesColorA')
-            this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorBNode.value, 'leavesColorB')
-            this.debugPanel.addBinding(this.leaves.material.shadowOffset, 'value', { label: 'shadowOffset', min: 0, max: 2, step: 0.001 })
-            this.debugPanel.addBinding(this.leaves.material.threshold, 'value', { label: 'threshold', min: 0, max: 1, step: 0.001 })
-            this.debugPanel.addBinding(this.leaves.material.seeThroughEdgeMin, 'value', { label: 'seeThroughEdgeMin', min: 0, max: 1, step: 0.001 })
-            this.debugPanel.addBinding(this.leaves.material.seeThroughEdgeMax, 'value', { label: 'seeThroughEdgeMax', min: 0, max: 1, step: 0.001 })
+            const groupReferences = references.filter((reference) => reference.userData.leafLabel === group.label)
+
+            if(!groupReferences.length)
+                continue
+
+            const leavesColorANode = uniform(color(group.colorA))
+            const leavesColorBNode = uniform(color(group.colorB))
+            const foliage = new Foliage(groupReferences, leavesColorANode, leavesColorBNode, true, this.foliagePlaneCount)
+
+            this.leaves.push(foliage)
+
+            if(this.game.debug.active)
+            {
+                const suffix = group.label ? `_${group.label}` : ''
+                this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorANode.value, `leavesColorA${suffix}`)
+                this.game.debug.addThreeColorBinding(this.debugPanel, leavesColorBNode.value, `leavesColorB${suffix}`)
+                this.debugPanel.addBinding(foliage.material.shadowOffset, 'value', { label: `shadowOffset${suffix}`, min: 0, max: 2, step: 0.001 })
+                this.debugPanel.addBinding(foliage.material.threshold, 'value', { label: `threshold${suffix}`, min: 0, max: 1, step: 0.001 })
+                this.debugPanel.addBinding(foliage.material.seeThroughEdgeMin, 'value', { label: `seeThroughEdgeMin${suffix}`, min: 0, max: 1, step: 0.001 })
+                this.debugPanel.addBinding(foliage.material.seeThroughEdgeMax, 'value', { label: `seeThroughEdgeMax${suffix}`, min: 0, max: 1, step: 0.001 })
+            }
         }
     }
 

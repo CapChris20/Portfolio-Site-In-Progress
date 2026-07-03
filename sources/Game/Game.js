@@ -116,7 +116,7 @@ export class Game
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
         this.vehicleMode = import.meta.env.VITE_VEHICLE || 'custom'
 
-        const cb = '?cb=107'
+        const cb = '?cb=115'
         const careerTextureFormat = 'texture'
         this.resources = await this.resourcesLoader.load([
             [ 'respawnsReferencesModel',    `respawns/respawnsReferences${compressedModelSuffix}.glb${cb}`, 'gltf' ],
@@ -156,7 +156,14 @@ export class Game
                 [ 'vehicle',                               `vehicle/default${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'customVehicle',                         `vehicle/lightningMcqueen.glb${cb}`,                                                'gltf' ],
                 [ 'motorcycleVehicle',                     `props/LionMotorcycle.glb${cb}`,                                                    'gltf' ],
+                [ 'secondMotorcycleVehicle',               `props/2ndMotorcycle.glb${cb}`,                                                     'gltf' ],
+                [ 'speedStarVehicle',                      `props/SpeedStarCar.glb${cb}`,                                                      'gltf' ],
+                [ 'kingVehicle',                           `props/KingCar.glb${cb}`,                                                           'gltf' ],
+                [ 'radiatorMcqueenVehicle',                `props/RadiatorMcqueen.glb${cb}`,                                                   'gltf' ],
                 [ 'mechaVehicle',                          `props/Mecha.glb${cb}`,                                                             'gltf' ],
+                [ 'lionAnimal',                            `props/Lion.glb${cb}`,                                                              'gltf' ],
+                [ 'oldGarage',                             `props/Garage.glb${cb}`,                                                            'gltf' ],
+                [ 'garageWrap',                            `props/GarageWrap.png${cb}`,                                                        'texture', (resource) => { resource.colorSpace = THREE.SRGBColorSpace } ],
                 [ 'retrowaveCar',                          `props/retrowaveCar${compressedModelSuffix}.glb${cb}`,                               'gltf' ],
                 [ 'playgroundVisual',                      `playground/playgroundVisual${compressedModelSuffix}.glb${cb}`,                       'gltf' ],
                 [ 'playgroundPhysical',                    `playground/playgroundPhysical${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
@@ -166,6 +173,9 @@ export class Game
                 [ 'benchesModel',                          `benches/benches${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'lanternsModel',                         `lanterns/lanterns${compressedModelSuffix}.glb${cb}`,                                 'gltf' ],
                 [ 'terrainTexture',                        `terrain/terrain.${compressedTextureExtension}${cb}`,                                 compressedTextureFormat, (resource) => { resource.flipY = false; } ],
+                ...(compressed ? [
+                    [ 'terrainMaskTexture',                `terrain/terrain.png${cb}`,                                                           'texture', (resource) => { resource.flipY = false; } ],
+                ] : []),
                 [ 'terrainModel',                          `terrain/terrain${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'floorTexture',                          `props/FloorTexture.glb${cb}`,                                                        'gltf', (resource) =>
                 {
